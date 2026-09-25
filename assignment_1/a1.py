@@ -28,11 +28,12 @@ dist_matrix = np.array(dist_matrix)
 np.set_printoptions(precision=2, suppress=True, linewidth=100) # Comment out to print normally
 # print(dist_matrix) # Uncomment to check matrix
 
+
 # ====================================================
 ### Task 1.2
 # ====================================================
 
-# scaled_data 
+# scaled_data ? 
 
 pca = PCA(n_components=2)
 X_pca = pca.fit_transform(X)
@@ -48,3 +49,6 @@ X_umap = reducer.fit_transform(X)
 print(X_umap.shape)
 plot_scatter(X_umap, y, "umap_plot.png")
 
+# plot PCA centres
+X_pca_centres = pca.fit_transform(means)
+plot_scatter(X_pca_centres, unique_labels, "pca_centres_plot.png")

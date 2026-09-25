@@ -52,3 +52,8 @@ plot_scatter(X_umap, y, "umap_plot.png")
 # plot PCA centres
 X_pca_centres = pca.fit_transform(means)
 plot_scatter(X_pca_centres, unique_labels, "pca_centres_plot.png")
+
+# ====================================================
+### Task 1.3
+# ====================================================
+

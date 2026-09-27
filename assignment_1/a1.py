@@ -64,7 +64,7 @@ np.set_printoptions(precision=2, suppress=True, linewidth=100) # Comment out to 
 ### Task 1.3
 # ====================================================
 
-def centre_predictions(X, y):
+def centre_predictions(string, X, y):
     """
     uses euclidean distance from label means to predict class
     """
@@ -79,14 +79,15 @@ def centre_predictions(X, y):
         losses.append(loss)
 
     percentage_true_pred = np.sum(losses) / len(losses)
-    print (f"Percentage of true predictions: {percentage_true_pred:.4f}")
+    print (string, f"Percentage of true predictions: {percentage_true_pred:.4f}")
 
     return predictions, losses
 
-train_centre_pred = centre_predictions("(train)",X, y)
+train_centre_pred, _ = centre_predictions("(train)",X, y)
 
-test_centre_pred = centre_predictions("(test)", X_test, y_test)
+test_centre_pred, _ = centre_predictions("(test)", X_test, y_test)
 
+print()
 
 # ====================================================
 ### Task 1.4
@@ -109,6 +110,8 @@ print_pred_perc("(train)", train_loss_arr)
 print_pred_perc("(test)", test_loss_arr)
 
 # Confusion matrices
+
+print("Shapes:", len(train_centre_pred), y.shape)
 
 get_confusion_matrix(train_centre_pred, y, "cm_centre_pred_train.png")
 get_confusion_matrix(test_centre_pred, y_test, "cm_centre_pred_test.png")

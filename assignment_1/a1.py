@@ -4,9 +4,9 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
-
+# from sklearn.metrics import ConfusionMatrixDisplay
 import umap
-from plotting import plot_scatter
+from plotting import plot_scatter, get_confusion_matrix
 
 
 
@@ -74,18 +74,18 @@ def centre_predictions(X, y):
         x_i_broadcasted = np.broadcast_to(x_i, means.shape)
         dist = np.linalg.norm(x_i_broadcasted-means)
         pred_y = np.argmin(dist)
-        loss = 0 if pred_y == y[idx] else 1
+        loss = 1 if pred_y == y[idx] else 0
         predictions.append(pred_y)
         losses.append(loss)
 
-    percentage_true_pred = (len(losses) - np.sum(losses)) / len(losses)
-    print (f"Percentage of true predictions (train): {percentage_true_pred:.4f}")
+    percentage_true_pred = np.sum(losses) / len(losses)
+    print (f"Percentage of true predictions: {percentage_true_pred:.4f}")
 
     return predictions, losses
 
-centre_predictions(X, y)
+train_centre_pred = centre_predictions("(train)",X, y)
 
-centre_predictions(X_test, y_test)
+test_centre_pred = centre_predictions("(test)", X_test, y_test)
 
 
 # ====================================================
@@ -95,7 +95,30 @@ centre_predictions(X_test, y_test)
 neigh = KNeighborsClassifier()
 neigh.fit(X,y)
 
-train_loss, test_loss = [], []
-for x_i_train, x_i_test in zip(X, X_test):
-    train_pred, test_pred = 
+train_pred, test_pred = neigh.predict(X), neigh.predict(X_test)
+
+print(X.shape, train_pred.shape)
+train_loss_arr = np.where(train_pred == y, 1, 0)
+test_loss_arr = np.where(test_pred == y_test, 1, 0)
+
+def print_pred_perc(string, losses):
+    percentage_true_pred = np.sum(losses) / len(losses)
+    print (string, f"Percentage of true predictions: {percentage_true_pred:.4f}")
+
+print_pred_perc("(train)", train_loss_arr)
+print_pred_perc("(test)", test_loss_arr)
+
+# Confusion matrices
+
+get_confusion_matrix(train_centre_pred, y, "cm_centre_pred_train.png")
+get_confusion_matrix(test_centre_pred, y_test, "cm_centre_pred_test.png")
+get_confusion_matrix(train_pred, y, "cm_knn_pred_train.png")
+get_confusion_matrix(test_pred, y_test, "cm_knn_pred_test.png")
+
+# cm_centre_pred_train = ConfusionMatrixDisplay.from_predictions(train_centre_pred, y)
+# cm_centre_pred_test = ConfusionMatrixDisplay.from_predictions(test_centre_pred, y_test)
+# cm_knn_pred_train = ConfusionMatrixDisplay.from_predictions(train_pred, y)
+# cm_knn_pred_test = ConfusionMatrixDisplay.from_predictions(test_pred, y_test)
+
+
 

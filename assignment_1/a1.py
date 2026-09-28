@@ -8,8 +8,6 @@ from sklearn.neighbors import KNeighborsClassifier
 import umap
 from plotting import plot_scatter, get_confusion_matrix
 
-
-
 X = np.loadtxt(r'/local/s4099699/IDL/assignment_1/data/train_in - Copy.csv', delimiter=',')
 y = np.loadtxt(r'/local/s4099699/IDL/assignment_1/data/train_out - Copy.csv', delimiter=',').ravel()
 X_test = np.loadtxt(r'/local/s4099699/IDL/assignment_1/data/test_in - Copy.csv', delimiter=',')
@@ -86,8 +84,6 @@ def centre_predictions(string, X, y):
 train_centre_pred, _ = centre_predictions("(train)",X, y)
 
 test_centre_pred, _ = centre_predictions("(test)", X_test, y_test)
-
-print()
 
 # ====================================================
 ### Task 1.4

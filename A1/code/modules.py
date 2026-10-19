@@ -11,6 +11,7 @@ class LinearActivation(nn.Module):
             nn.Linear(in_feat, out_feat),
             self.a
         )
+
     def forward(self, x):
         x = self.flatten(x)
         return self.linear_relu_stack(x)

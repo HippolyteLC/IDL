@@ -8,7 +8,7 @@ class LinearReLU(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(in_feat, out_feat),
-            nn.Relu()
+            nn.ReLU()
         )
     def forward(self, x):
         x = self.flatten(x)
@@ -23,28 +23,9 @@ class Conv2DPool(nn.Module):
             nn.MaxPool2d(2,2, ceil_mode=True),
         )
     def forward(self, x):
-        return self.conv2drelupool_stack(x)
-
-class DynamicMLPV1(nn.Module):
-    def __init__(self, in_feat, out_feat, K, D):
-        """
-        Module with fixed width D at each hidden layer.
-        With K=0, it is a simple Perceptron,
-        with K>=1 it is an MLP.
-        """
-        if K <= 0:
-            self.layers = nn.ModuleList([nn.Linear(in_feat, out_feat)])
-        else:
-            self.layers = nn.ModuleList([nn.Linear(in_feat, D)])
-            for _ in range(K-1):
-                self.layers.append(nn.Linear(D, D))
-            self.layers.append(nn.Linear(D, out_feat))
-        self.activation = nn.ReLU()
-
-    def forward(self, x):
-        return [self.activation(lay(x)) for lay in self.layers][-1]
+        return self.conv2d_relu_pool_stack(x)
     
-class DynamicMLPV2(nn.module):
+class DynamicMLP(nn.Module):
     """ 
     Still requires the flatten input size to be input into the network
     
@@ -56,25 +37,21 @@ class DynamicMLPV2(nn.module):
         for _ in range(K-1):
             layers.append(LinearReLU(D, D))
         layers.append(nn.Linear(D, out_feat))
-        layers.append(nn.Softmax())
+        # layers.append(nn.Softmax())
         self.mlp = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.mlp(x)
     
-class DynamicCNN(nn.module):
+class DynamicCNN(nn.Module):
     """ 
     Grow the number of channels as a factor of the number of possible kernels. 
     First consider the input size, compute number of possible kernels, and then 
     """
-    def __init__(self, H, W, C_i, out_feat, kernel_size, K):
+    def __init__(self, H, W, C_i, out_feat, kernel_size, K, D):
         super().__init__()
         # have some base channel output, then
-        n_pools = 0
-        output_H = H*1
-        while output_H > 2:
-            output_H = np.ceil(output_H/2)
-            n_pools+=1
+        n_pools = max(0, np.ceil(np.log2(H/2)))
 
         layers = [Conv2DPool(C_i, H, kernel_size)]
         C_o = H*1
@@ -83,10 +60,11 @@ class DynamicCNN(nn.module):
             C_o *= 2
 
         in_feat = 2*2*C_o
-        for _ in range(K):
-            layers.append(LinearReLU(in_feat, in_feat))
-        layers.append(nn.Linear(in_feat, out_feat))
-        layers.append(nn.Softmax())
+        layers.append(LinearReLU(in_feat, D))
+        for _ in range(K-1):
+            layers.append(LinearReLU(D, D))
+        layers.append(nn.Linear(D, out_feat))
+        # layers.append(nn.Softmax())
 
         self.cnn = nn.Sequential(*layers)
 

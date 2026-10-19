@@ -5,13 +5,14 @@ from torchvision import datasets
 from torchvision.transforms import v2
 from torch.utils.data.dataset import random_split
 
-from sklearn.model_selection import train_test_split
-
+from pathlib import Path
 
 
 class DataHandler:
     def __init__(self, data_dir="../data", dataset_name="fashionmnist", batch_size=64, val_split=0.1):
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir).expanduser().resolve()
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        
         self.dataset_name = dataset_name
         self.batch_size = batch_size
         self.val_split = val_split
@@ -27,8 +28,9 @@ class DataHandler:
         Then wraps them in dataloaders. 
         """
         train_val = self.data_class(
-            root=self.data_dir,
+            root=str(self.data_dir),
             train=True,
+            download=True,
             transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
         )
         
@@ -38,8 +40,9 @@ class DataHandler:
         train, val = random_split(train_val, [train_length, val_length], generator)
 
         test = self.data_class(
-                root=self.data_dir,
+                root=str(self.data_dir),
                 train=False,
+                download=True,
                 transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
         )
 
@@ -54,36 +57,11 @@ class DataHandler:
         return self.train_loader, self.val_loader, self.test_loader
 
 def main():
-    """ 
-    Download required datasets
-    """
-    training_data = datasets.FashionMNIST(
-        root="data",
-        train=True,
-        download=True,
-        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
-    )
+    train_loader, val_loader, test_loader = DataHandler().data_loader()
+    images, labels = next(iter(train_loader))
+    print(f"Batch image shape: {images.shape}") # Should be 64, 1 (channel), 28,28
+    print(f"Batch label shape: {labels.shape}") # Should be 64, (labels)
+    print(f"Pixel value range: min={images.min():.2f}, max={images.max():.2f}") # the scaling from v2Compose in [0,1]
 
-    test_data = datasets.FashionMNIST(
-        root="data",
-        train=False,
-        download=True,
-        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
-    )
-
-    training_data = datasets.CIFAR10(
-        root="data",
-        train=True,
-        download=True,
-        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
-    )
-
-    test_data = datasets.CIFAR10(
-        root="data",
-        train=False,
-        download=True,
-        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
-    )
-
-if __name__=="main":
+if __name__=="__main__":
     main()

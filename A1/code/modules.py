@@ -29,6 +29,7 @@ class DynamicMLP(nn.Module):
     """ 
     Still requires the flatten input size to be input into the network
     
+    Produces K hidden layers of fixed D width. Outputs raw logits. 
     """
     def __init__(self, H, W, out_feat, K, D):
         super().__init__()
@@ -37,7 +38,7 @@ class DynamicMLP(nn.Module):
         for _ in range(K-1):
             layers.append(LinearReLU(D, D))
         layers.append(nn.Linear(D, out_feat))
-        # layers.append(nn.Softmax())
+
         self.mlp = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -47,6 +48,14 @@ class DynamicCNN(nn.Module):
     """ 
     Grow the number of channels as a factor of the number of possible kernels. 
     First consider the input size, compute number of possible kernels, and then 
+
+    Uses Conv2D, Relu, MaxPool sequences to halve the input size repeatedly. Ceil_mode
+    is True so that max pool does not throw away modulo leftover rows/cols. 
+    Does this dim halving up to a output size of 2x2. The n_channels is first set to the input width,
+    it is then doubled each time as the input H, W are halved.
+    
+    At the end K hidden FC layers are appended with fixed width D. 
+    OUtputs raw logits. 
     """
     def __init__(self, H, W, C_i, out_feat, kernel_size, K, D):
         super().__init__()
@@ -64,7 +73,6 @@ class DynamicCNN(nn.Module):
         for _ in range(K-1):
             layers.append(LinearReLU(D, D))
         layers.append(nn.Linear(D, out_feat))
-        # layers.append(nn.Softmax())
 
         self.cnn = nn.Sequential(*layers)
 

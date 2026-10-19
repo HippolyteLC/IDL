@@ -2,24 +2,26 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-class LinearReLU(nn.Module):
-    def __init__(self, in_feat, out_feat):
+class LinearActivation(nn.Module):
+    def __init__(self, in_feat, out_feat, activation):
         super().__init__()
+        self.a = activation
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(in_feat, out_feat),
-            nn.ReLU()
+            self.a
         )
     def forward(self, x):
         x = self.flatten(x)
         return self.linear_relu_stack(x)
 
-class Conv2DPool(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size):
+class Conv2DActivationPool(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, activation):
         super().__init()
+        self.a = activation
         self.conv2d_relu_pool_stack = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, padding='same'),
-            nn.ReLU(),
+            self.a,
             nn.MaxPool2d(2,2, ceil_mode=True),
         )
     def forward(self, x):
@@ -34,9 +36,9 @@ class DynamicMLP(nn.Module):
     def __init__(self, H, W, out_feat, K, D):
         super().__init__()
         in_feat = H*W
-        layers = [LinearReLU(in_feat, D)]
+        layers = [LinearActivation(in_feat, D)]
         for _ in range(K-1):
-            layers.append(LinearReLU(D, D))
+            layers.append(LinearActivation(D, D))
         layers.append(nn.Linear(D, out_feat))
 
         self.mlp = nn.Sequential(*layers)
@@ -62,16 +64,16 @@ class DynamicCNN(nn.Module):
         # have some base channel output, then
         n_pools = max(0, np.ceil(np.log2(H/2)))
 
-        layers = [Conv2DPool(C_i, H, kernel_size)]
+        layers = [Conv2DActivationPool(C_i, H, kernel_size)]
         C_o = H*1
         for _ in range(n_pools-1):
-            layers.append(Conv2DPool(C_o, C_o*2, kernel_size))
+            layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size))
             C_o *= 2
 
         in_feat = 2*2*C_o
-        layers.append(LinearReLU(in_feat, D))
+        layers.append(LinearActivation(in_feat, D))
         for _ in range(K-1):
-            layers.append(LinearReLU(D, D))
+            layers.append(LinearActivation(D, D))
         layers.append(nn.Linear(D, out_feat))
 
         self.cnn = nn.Sequential(*layers)

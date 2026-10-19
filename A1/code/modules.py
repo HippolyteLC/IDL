@@ -1,31 +1,8 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-
-
-class DynamicMLP(nn.Module):
-    def __init__(self, in_feat, out_feat, K, D):
-        """
-        Module with fixed width D at each hidden layer.
-        With K=0, it is a simple Perceptron,
-        with K>=1 it is an MLP.
-        """
-        if K <= 0:
-            self.layers = nn.ModuleList([nn.Linear(in_feat, out_feat)])
-        else:
-            self.layers = nn.ModuleList([nn.Linear(in_feat, D)])
-            for _ in range(K-1):
-                self.layers.append(nn.Linear(D, D))
-            self.layers.append(nn.Linear(D, out_feat))
-        self.activation = nn.ReLU()
-
-    def forward(self, x):
-        return [self.activation(lay(x)) for lay in self.layers][-1]
-
-
 class LinearReLU(nn.Module):
-    def __init__(self, in_feat, out_feat, K, D):
+    def __init__(self, in_feat, out_feat):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
@@ -46,6 +23,39 @@ class Conv2DPool(nn.Module):
         )
     def forward(self, x):
         return self.conv2drelupool_stack(x)
+
+class DynamicMLPV1(nn.Module):
+    def __init__(self, in_feat, out_feat, K, D):
+        """
+        Module with fixed width D at each hidden layer.
+        With K=0, it is a simple Perceptron,
+        with K>=1 it is an MLP.
+        """
+        if K <= 0:
+            self.layers = nn.ModuleList([nn.Linear(in_feat, out_feat)])
+        else:
+            self.layers = nn.ModuleList([nn.Linear(in_feat, D)])
+            for _ in range(K-1):
+                self.layers.append(nn.Linear(D, D))
+            self.layers.append(nn.Linear(D, out_feat))
+        self.activation = nn.ReLU()
+
+    def forward(self, x):
+        return [self.activation(lay(x)) for lay in self.layers][-1]
+    
+class DynamicMLPV2(nn.module):
+    def __init__(self, in_feat, out_feat, K, D):
+        super().__init__()
+        layers = [LinearReLU(in_feat, D)]
+        for _ in range(K-1):
+            layers.append(LinearReLU(D, D))
+        layers.append(nn.Linear(D, out_feat))
+        layers.append(nn.Softmax())
+        self.mlp = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.mlp(x)
+    
 
 class DynamicCNN(nn.module):
     def __init__(self, in_feat, out_feat, K, D):
@@ -68,3 +78,16 @@ class DynamicCNN(nn.module):
 
 
 net = Net()
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -26,17 +26,24 @@ class DynamicMLP(nn.Module):
 
 class LinearReLU(nn.Module):
     def __init__(self, in_feat, out_feat, K, D):
-
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(in_feat, out_feat),
+            nn.Relu()
+        )
+    def forward(self, x):
+        x = self.flatten(x)
+        return self.linear_relu_stack(x)
 
 class Conv2DPool(nn.Module):
-    def __init__(self, in_feat, out_feat, K, D):
+    def __init__(self, in_channels, out_channels, kernel_size):
         super().__init()
-        self.conv2drelupool_stack = nn.Sequential(
-            nn.Conv2d(),
+        self.conv2d_relu_pool_stack = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size),
             nn.ReLU(),
             nn.MaxPool2d(2,2),
         )
-
     def forward(self, x):
         return self.conv2drelupool_stack(x)
 

@@ -4,14 +4,18 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets
 from torchvision.transforms import v2
 from torch.utils.data.dataset import random_split
+from torch.utils.data import TensorDataset, RandomSampler, SequentialSampler, BatchSampler
+
 
 from pathlib import Path
 
 
 class DataHandler:
-    def __init__(self, data_dir="../data", dataset_name="fashionmnist", batch_size=64, val_split=0.1, seed=111):
+    def __init__(self, data_dir="../data", dataset_name="fashionmnist", device="cpu", batch_size=64, val_split=0.1, seed=111):
         self.data_dir = Path(data_dir).expanduser().resolve()
         self.data_dir.mkdir(parents=True, exist_ok=True)
+
+        self.device = device
         
         self.dataset_name = dataset_name
         self.batch_size = batch_size
@@ -26,34 +30,45 @@ class DataHandler:
         self.val_loader = None
         self.test_loader = None
 
+    @staticmethod
+    def to_tensors(dataset):
+        """One pass through a torchvision dataset -> (X, y) tensors."""
+        xs, ys = [], []
+        for x, y in DataLoader(dataset, batch_size=batch_size):
+            xs.append(x); ys.append(y)
+        return torch.cat(xs), torch.cat(ys)
+
+    def make_loader(self, X, y, shuffle=True):
+        ds = TensorDataset(X.to(self.device), y.to(self.device))
+        if shuffle:
+            generator = torch.Generator().manual_seed(self.seed)
+            base = RandomSampler(ds, generator=generator)
+        else:
+            base = SequentialSampler(ds)
+        return DataLoader(ds, batch_size=None, sampler=BatchSampler(base, self.batch_size, drop_last=False))
+
     def initialize_dataset(self):
         """
         Loads dataset (either dl or from data dir)
         Then wraps them in dataloaders. 
         """
-        train_val = self.data_class(
-            root=str(self.data_dir),
-            train=True,
-            download=True,
-            transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
-        )
-        
+        train_val = self.data_class(root=str(self.data_dir), train=True, download=True, transform=self.transform)
+
         generator = torch.Generator().manual_seed(self.seed)
         train_length = int(round(len(train_val)*(1-self.val_split)))
         val_length = len(train_val) - train_length
         train, val = random_split(train_val, [train_length, val_length], generator)
 
-        test = self.data_class(
-                root=str(self.data_dir),
-                train=False,
-                download=True,
-                transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
-        )
+        X, y = self._to_tensors(train_val)
+        X_train, y_train = X[train.indices], y[train.indices] 
+        X_val, y_val = X[val.indices], y[val.indices]
 
-        self.train_loader = DataLoader(train, self.batch_size, )
-        self.val_loader = DataLoader(val, self.batch_size)
-        self.test_loader = DataLoader(test, self.batch_size)
-        # optionally add standardization to 0 mean and 1 std. 
+        test = self.data_class(root=str(self.data_dir), train=False, download=True, transform=self.transform)
+        X_test, y_test = self._to_tensors(test)
+
+        self.train_loader = self.make_loader(X_train, y_train, shuffle=True)
+        self.val_loader = self.make_loader(X_val, y_val, shuffle=False)
+        self.test_loader = self.make_loader(X_test, y_test, shuffle=False)
     
     def data_loader(self):
         if self.train_loader is None:

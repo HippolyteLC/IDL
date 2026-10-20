@@ -37,7 +37,6 @@ def get_activation_method(method):
 def get_regularization_term(method, m):
     method = method.lower()
     if method == "l2":
-        if isinstance(m, Module):
-            return sum(p.pow(2) for p in m.parameters())
+        return sum(p.pow(2).sum() for p in m.parameters())
     return 0
     

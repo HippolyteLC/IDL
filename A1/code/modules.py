@@ -19,28 +19,34 @@ def compute_parameters(m):
         return m.in_channels * m.out_channels * m.kernel_size + m.out_channels
 
 class LinearActivation(nn.Module):
-    def __init__(self, in_feat, out_feat, activation):
+    def __init__(self, in_feat, out_feat, activation, dropout=0):
         super().__init__()
         self.a = activation
         self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
+        layers = [
             nn.Linear(in_feat, out_feat),
             self.a
-        )
+        ]
+        if dropout:
+            layers.append(nn.Dropout(dropout))
+        self.linear_relu_stack = nn.Sequential(*layers)
 
     def forward(self, x):
         x = self.flatten(x)
         return self.linear_relu_stack(x)
 
 class Conv2DActivationPool(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, activation):
+    def __init__(self, in_channels, out_channels, kernel_size, activation, dropout=0):
         super().__init()
         self.a = activation
-        self.conv2d_relu_pool_stack = nn.Sequential(
+        layers = [
             nn.Conv2d(in_channels, out_channels, kernel_size, padding='same'),
             self.a,
             nn.MaxPool2d(2,2, ceil_mode=True),
-        )
+        ]
+        if dropout:
+            layers.append(nn.Dropout(dropout))
+        self.conv2d_relu_pool_stack = nn.Sequential(*layers)
     def forward(self, x):
         return self.conv2d_relu_pool_stack(x)
     

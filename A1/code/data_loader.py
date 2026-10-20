@@ -16,7 +16,10 @@ class DataHandler:
         self.dataset_name = dataset_name
         self.batch_size = batch_size
         self.val_split = val_split
-        self.data_class = datasets.FashionMNIST if self.dataset_name == "fashionmnist" else datasets.CIFAR10
+        if self.dataset_name.lower() == "fashionmnist": 
+            self.data_class = datasets.FashionMNIST 
+        elif self.dataset_name.lower() == "cifar10":
+            self.data_class = datasets.CIFAR10
 
         self.train_loader = None
         self.val_loader = None

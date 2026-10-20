@@ -4,7 +4,7 @@ import numpy as np
 
 D_max = 1024
 
-PARAMETER_BUDGET = 1.5e9
+PARAMETER_BUDGET = 1.5e9 # max number of parameters for an RTX 4060 GPU 
 
 def init_weights(m, init_method, gain, generator, verbose=False):
     if verbose:

@@ -10,7 +10,8 @@ import torch.optim as optim
 from torch.optim import SGD, Adam, AdamW
 from modules import init_weights, DynamicMLP, DynamicCNN
 from data_loader import DataHandler
-from torch.nn.init import xavier_uniform_, xavier_normal_, kaiming_uniform_, normal_
+
+from utils import load_init_method
 
 import numpy as np
 
@@ -19,9 +20,6 @@ DATASET_NAME = "fashionmnist"
 BATCH_SIZE = 64 
 
 NET_TYPE = "mlp"
-
-parameter_budget = 1.5e9 # max number of parameters for an RTX 4060 GPU 
-
 
 def parse_args() -> argparse.Namespace:
     """Parse the reproducible experiment command-line options."""
@@ -40,23 +38,32 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--regularization", type=str, default="dropout")
     parser.add_argument("--n-hidden-fc-layers", type=int, default=5)
     parser.add_argument("--fc-width", type=int, default=None)
+    parser.add_argument("--kernel-size", type=int, default=3)
     return parser.parse_args()
 
-D_max = 1024
 args = parse_args()
 
+if args.dataset.lower() == "fashionmnist":
+    H, W = 28, 28 
+    out_feat = 10
+    C_i = 1
+elif args.dataset.lower() == "cifar10":
+    H, W = 32, 32
+    out_feat = 10
+    C_i = 3
+
 K = args.n_hidden_fc_layers
-if args.fc_width is None:
-    D = min(D_max, np.floor(np.sqrt(parameter_budget/K)))
+D = args.fc_width
+kernel_size = args.kernel_size
 
+if args.model.lower() == "mlp":
+    net = DynamicMLP(H=H, W=W, out_feat=out_feat, K=K, D=D)
+elif args.model.lower() == "cnn":
+    net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D)
 
+initialization_method = load_init_method(args.init_method)
 
-
-kernel_size = 3
-
-init_method = xavier_uniform_
-
-if
+i
 optimizer_method = 
 
 datahandler = DataHandler(data_dir=DATA_DIR, dataset_name=DATASET_NAME, batch_size=BATCH_SIZE)
@@ -90,7 +97,7 @@ def train_one_epoch(
     running_loss = 0.
     last_loss = 0.
 
-    net.apply(init_weights(init_method=init_method, gain=gain))
+    net.apply(init_weights(init_method=initialization_method, gain=gain))
     
 
 

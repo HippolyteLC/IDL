@@ -14,7 +14,6 @@ class DataHandler:
     def __init__(self, data_dir="../data", dataset_name="fashionmnist", device="cpu", batch_size=64, val_split=0.1, seed=111):
         self.data_dir = Path(data_dir).expanduser().resolve()
         self.data_dir.mkdir(parents=True, exist_ok=True)
-
         self.device = device
         
         self.dataset_name = dataset_name
@@ -25,13 +24,14 @@ class DataHandler:
             self.data_class = datasets.FashionMNIST 
         elif self.dataset_name.lower() == "cifar10":
             self.data_class = datasets.CIFAR10
+        self.transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
         self.train_loader = None
         self.val_loader = None
         self.test_loader = None
 
     @staticmethod
-    def to_tensors(dataset):
+    def to_tensors(dataset, batch_size):
         """One pass through a torchvision dataset -> (X, y) tensors."""
         xs, ys = [], []
         for x, y in DataLoader(dataset, batch_size=batch_size):
@@ -59,12 +59,12 @@ class DataHandler:
         val_length = len(train_val) - train_length
         train, val = random_split(train_val, [train_length, val_length], generator)
 
-        X, y = self._to_tensors(train_val)
+        X, y = self.to_tensors(train_val, self.batch_size)
         X_train, y_train = X[train.indices], y[train.indices] 
         X_val, y_val = X[val.indices], y[val.indices]
 
         test = self.data_class(root=str(self.data_dir), train=False, download=True, transform=self.transform)
-        X_test, y_test = self._to_tensors(test)
+        X_test, y_test = self.to_tensors(test, self.batch_size)
 
         self.train_loader = self.make_loader(X_train, y_train, shuffle=True)
         self.val_loader = self.make_loader(X_val, y_val, shuffle=False)

@@ -2,29 +2,33 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+import torch
+
 D_max = 1<<11 # 2048
 
 PARAMETER_BUDGET = 5e9 # max number of parameters for an RTX 4060 GPU 
 
-def init_weights(m, init_method, generator, nonlinearity, verbose=False):
+def init_weights(m, init_method, generator, verbose=False):
     if verbose:
         print(m)
     if type(m) in {nn.Linear, LinearActivation, Conv2DActivationPool}:
-        init_method(m, generator=generator, nonlinearity=nonlinearity)
+        init_method(m, generator=generator)
         if verbose:
             print(m.weight) 
+        if m.bias is not None:                     # None when bias=False
+            nn.init.zeros_(m.bias)
 
 # def compute_parameters(m):
 #     if isinstance(m, Conv2DActivationPool):
 #         return m.in_channels * m.out_channels * m.kernel_size + m.out_channels
 
 class LinearActivation(nn.Module):
-    def __init__(self, in_feat, out_feat, activation, dropout=0):
+    def __init__(self, in_feat, out_feat, activation, dropout=0, bias=False):
         super().__init__()
         self.a = activation
         self.flatten = nn.Flatten()
         layers = [
-            nn.Linear(in_feat, out_feat),
+            nn.Linear(in_feat, out_feat, bias=bias),
             self.a
         ]
         if dropout:
@@ -36,11 +40,11 @@ class LinearActivation(nn.Module):
         return self.linear_relu_stack(x)
 
 class Conv2DActivationPool(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, activation, dropout=0):
+    def __init__(self, in_channels, out_channels, kernel_size, activation, dropout=0, bias=False):
         super().__init__()
         self.a = activation
         layers = [
-            nn.Conv2d(in_channels, out_channels, kernel_size, padding='same'),
+            nn.Conv2d(in_channels, out_channels, kernel_size, padding='same', bias=bias),
             self.a,
             nn.MaxPool2d(2,2, ceil_mode=True),
         ]
@@ -56,14 +60,14 @@ class DynamicMLP(nn.Module):
     
     Produces K hidden layers of fixed D width. Outputs raw logits. 
     """
-    def __init__(self, H, W, C_i, out_feat, K, D=None, dropout=0, activation=None):
+    def __init__(self, H, W, C_i, out_feat, K, D=None, dropout=0, activation=None, bias=False):
         super().__init__()
         in_feat = H*W*C_i
         # if D is None:
         #     D = int(min(D_max, np.floor(np.sqrt(PARAMETER_BUDGET/K))))
-        layers = [LinearActivation(in_feat, D, activation)]
+        layers = [LinearActivation(in_feat, D, activation, bias=bias)]
         for _ in range(K-1):
-            layers.append(LinearActivation(D, D, activation))
+            layers.append(LinearActivation(D, D, activation, bias=bias))
         layers.append(nn.Linear(D, out_feat))
         
         self.mlp = nn.Sequential(*layers)
@@ -86,15 +90,15 @@ class DynamicCNN(nn.Module):
     At the end K hidden FC layers are appended with fixed width D. 
     OUtputs raw logits. 
     """
-    def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None):
+    def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False):
         super().__init__()
         # have some base channel output, then
         n_pools = int(max(0, np.ceil(np.log2(H/(1<<2)))))
 
-        layers = [Conv2DActivationPool(C_i, H, kernel_size, activation)]
+        layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, bias=bias)]
         C_o = H*1
         for _ in range(n_pools-1):
-            layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation))
+            layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation, bias=bias))
             C_o *= 2
 
         # used_parameter_budget = sum([m.apply(compute_parameters) for m in layers])
@@ -102,11 +106,12 @@ class DynamicCNN(nn.Module):
 
         # if D is None:
         #     D = min(D_max, np.floor(np.sqrt(PARAMETER_BUDGET/K)))
-        
-        in_feat = 2*2*C_o
-        layers.append(LinearActivation(in_feat, D, activation))
+        conv = nn.Sequential(*layers)
+        with torch.no_grad():
+            in_feat = conv(torch.zeros(1, C_i, H, W)).numel()
+        layers.append(LinearActivation(in_feat, D, activation, bias=bias))
         for _ in range(K-1):
-            layers.append(LinearActivation(D, D, activation))
+            layers.append(LinearActivation(D, D, activation, bias=bias))
         layers.append(nn.Linear(D, out_feat))
 
         self.cnn = nn.Sequential(*layers)

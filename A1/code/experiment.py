@@ -18,6 +18,8 @@ import numpy as np
 
 from datetime import datetime 
 
+from functools import partial
+
 import json
 
 import os
@@ -40,7 +42,7 @@ hp_logs_path = LOGS_DIR / f"{timestamp}_training_hyperparameters.json"
 
 lambda_reg=0.01 # for loss regularization terms
 
-device = nn.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {device} device")
 
 def parse_args() -> argparse.Namespace:
@@ -62,6 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--weight-decay", type=float, default=0.0)
     parser.add_argument("--n-hidden-fc-layers", type=int, default=5)
     parser.add_argument("--fc-width", type=int, default=512)
+    parser.add_argument("--bias", type=bool, default=False)
     parser.add_argument("--kernel-size", type=int, default=3)
     parser.add_argument("--num-epochs", type=int, default=20)
     return parser.parse_args()
@@ -95,19 +98,20 @@ activation = get_activation_method(args.activation_method)
 dropout = args.dropout
 
 if args.model.lower() == "mlp":
-    net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=dropout)
+    net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=dropout, bias=args.bias)
 elif args.model.lower() == "cnn":
-    net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=dropout)
+    net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=dropout, bias=args.bias)
 
+net.apply(partial(init_weights,
+                  init_method=load_init_method(args.init_method),
+                generator=generator))
+net.to(device)
 
-
-initialization_method = load_init_method(args.init_method)
 optimizer_method = load_optimizer_method(args.optimizer)
 optimizer = optimizer_method(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
 loss_function = nn.CrossEntropyLoss()
 
-net.apply(init_weights(init_method=initialization_method, generator=generator, nonlinearity=args.activation))
     
 def train():
     size = len(train_loader.dataset)
@@ -137,8 +141,8 @@ def train():
             loss, current = loss.item(), (batch + 1) * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
-    total_loss.item()/=size
-    total_correct.item()/=size
+    total_loss = total_loss.item()/size
+    total_correct = total_correct.item()/size
 
     print(f"Train Error: \n Accuracy: {(100*total_correct):>0.1f}%, Avg loss: {total_loss:>8f} \n")
 

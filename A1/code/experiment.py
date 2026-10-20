@@ -26,6 +26,8 @@ BATCH_SIZE = 64
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
 LOGS_DIR = Path("../logs")
+train_logs_path = LOGS_DIR + f"{timestamp}_training_logs.jsonl"
+hp_logs_path = LOGS_DIR + f"{timestamp}_training_hyperparameters.json"
 
 lambda_reg=0.01 # for loss regularization terms
 
@@ -145,34 +147,35 @@ def val():
     print(f"Validation Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {vloss:>8f} \n")
     return vloss, correct
 
-train_logs_path = LOGS_DIR + f"{timestamp}_training_logs.jsonl"
 
-for epoch in range(args.num_epochs):
-    print(f'EPOCH {epoch + 1}:')
+def main():
+    for epoch in range(args.num_epochs):
+        print(f'EPOCH {epoch + 1}:')
 
-    # Make sure gradient tracking is on, and do a pass over the data
-    net.train(True)
-    train_loss, train_correct = train()
+        # Make sure gradient tracking is on, and do a pass over the data
+        net.train(True)
+        train_loss, train_correct = train()
 
-    net.eval()
-    vloss, correct = val()
-    record = {}
-    record["train_loss"] = train_loss
-    record["train_accuracy"] = train_correct
-    record["validation_loss"] = vloss
-    record["validation_accuracy"] = correct
-    with open(train_logs_path, 'w') as f:
-        f.write(json.dumps(record) + "\n")
+        net.eval()
+        vloss, correct = val()
+        record = {}
+        record["train_loss"] = train_loss
+        record["train_accuracy"] = train_correct
+        record["validation_loss"] = vloss
+        record["validation_accuracy"] = correct
+        with open(train_logs_path, 'w') as f:
+            f.write(json.dumps(record) + "\n")
 
-hp_logs = vars(args)
-del hp_logs["data_dir"]
-hp_logs["fc_width"] = net.width
+    hp_logs = vars(args)
+    del hp_logs["data_dir"]
+    hp_logs["fc_width"] = net.width
 
-hp_logs_path = LOGS_DIR + f"{timestamp}_training_hyperparameters.json"
+    with open(hp_logs_path, 'w') as f:
+        json.dump(hp_logs_path, indent=4)
 
-with open(hp_logs_path, 'w') as f:
-    json.dump(hp_logs_path, indent=4)
-
-model_path = Path(f"../checkpoints/model_{args.model}_{args.dataset}_{timestamp}.pth")
-nn.save(net.state_dict(), model_path)
-print(f"Saved PyTorch Model State to {model_path}")
+    model_path = Path(f"../checkpoints/model_{args.model}_{args.dataset}_{timestamp}.pth")
+    nn.save(net.state_dict(), model_path)
+    print(f"Saved PyTorch Model State to {model_path}")
+    
+if __name__=="__main__":
+    main()

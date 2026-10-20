@@ -50,7 +50,7 @@ class DataHandler:
                 transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
         )
 
-        self.train_loader = DataLoader(train, self.batch_size)
+        self.train_loader = DataLoader(train, self.batch_size, )
         self.val_loader = DataLoader(val, self.batch_size)
         self.test_loader = DataLoader(test, self.batch_size)
         # optionally add standardization to 0 mean and 1 std. 

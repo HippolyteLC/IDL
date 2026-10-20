@@ -6,11 +6,11 @@ D_max = 1024
 
 PARAMETER_BUDGET = 1.5e9 # max number of parameters for an RTX 4060 GPU 
 
-def init_weights(m, init_method, gain, generator, verbose=False):
+def init_weights(m, init_method, generator, verbose=False):
     if verbose:
         print(m)
     if type(m) is nn.Module:
-        init_method(m, gain, generator)
+        init_method(m, generator=generator)
         if verbose:
             print(m.weight) 
 
@@ -65,8 +65,10 @@ class DynamicMLP(nn.Module):
         for _ in range(K-1):
             layers.append(LinearActivation(D, D))
         layers.append(nn.Linear(D, out_feat))
-
+        
         self.mlp = nn.Sequential(*layers)
+
+        self.width = D
 
     def forward(self, x):
         return self.mlp(x)
@@ -108,6 +110,8 @@ class DynamicCNN(nn.Module):
         layers.append(nn.Linear(D, out_feat))
 
         self.cnn = nn.Sequential(*layers)
+
+        self.width = D
 
     def forward(self, x):
         return self.cnn(x)

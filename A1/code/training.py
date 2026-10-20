@@ -17,13 +17,20 @@ import numpy as np
 
 from datetime import datetime 
 
+import json
+
 DATA_DIR = "../data"
 DATASET_NAME = "fashionmnist"
 BATCH_SIZE = 64 
 
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
+LOGS_DIR = Path("../logs")
+
 lambda_reg=0.01 # for loss regularization terms
+
+device = nn.accelerator.current_accelerator().type if nn.accelerator.is_available() else "cpu"
+print(f"Using {device} device")
 
 def parse_args() -> argparse.Namespace:
     """Parse the reproducible experiment command-line options."""
@@ -36,7 +43,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", type=str, default=DATA_DIR)
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--init-method", type=str, default="kaiming")
-    parser.add_argument("--gain", type=float, default=)
     parser.add_argument("--activation-method", type=str, default="relu")
     parser.add_argument("--optimizer", type=str, default="sgd")
     parser.add_argument("--momentum", type=float, default=0.9)
@@ -83,79 +89,90 @@ elif args.model.lower() == "cnn":
 
 initialization_method = load_init_method(args.init_method)
 optimizer_method = load_optimizer_method(args.optimizer)
+optimizer = optimizer_method(net.parameters(), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
+
 loss_function = nn.CrossEntropyLoss()
 
-
-def train_one_epoch(
-    ):
-    net.apply(init_weights(init_method=initialization_method, generator=generator))
-
-    criterion = loss_function
-    optimizer = optimizer_method(net.parameters(), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
-    total_loss = 0.
-    last_loss = 0.
-    running_loss = 0.0
-    total_samples = 0
-    for i, data in enumerate(train_loader, 0):
+net.apply(init_weights(init_method=initialization_method, generator=generator))
+    
+def train():
+    size = len(train_loader.dataset)
+    n_batches = len(val_loader)
+    train_loss, correct = 0., 0
+    for batch, (X, y) in enumerate(train_loader, 0):
         # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data
+        X, y = X.to(device), y.to(device)
 
         # zero the parameter gradients
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        outputs = net(inputs)
-        loss = criterion(outputs, labels)
+        outputs = net(X)
+        loss = loss_function(outputs, y)
         reg_term = get_regularization_term(args.regularization_method, net) # compute l2 (or other) regularization terms
-        loss+= lambda_reg*reg_term
+        loss += lambda_reg*reg_term
 
         loss.backward()
         optimizer.step()
 
         # Gather data and report
-        running_loss += loss.item() * inputs.size(0)
-        total_loss += loss.item() * inputs.size(0)
-        total_samples += inputs.size(0)
-        if i % 1000 == 999:
-            last_loss = (running_loss) / 1000 # loss per batch
-            print(f'  batch {i + 1} loss: {last_loss}')
-            running_loss = 0. 
+        running_loss += loss.item() * X.size(0)
+        train_loss += loss.item() * X.size(0)
+        correct += (outputs.argmax(1) == y).type(nn.float).sum().item()
+        if batch % 1000 == 0:
+            loss, current = loss.item(), (batch + 1) * len(X)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+    
+    train_loss/=n_batches
+    correct/=size
 
-        # print('Finished Training')
-    epoch_train_loss = total_loss / total_samples
-    return epoch_train_loss
+    print(f"Train Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {train_loss:>8f} \n")
+
+    return train_loss, correct
+
+def val():
+    size = len(val_loader.dataset)
+    n_batches = len(val_loader)
+    vloss, correct = 0., 0
+    with nn.no_grad():
+        for X, y in val_loader:
+            X, y = X.to(device), y.to(device)
+            outputs = net(X)
+            vloss += loss_function(outputs, y).item()
+            correct += (outputs.argmax(1) == y).type(nn.float).sum().item()
+    vloss/=n_batches
+    correct/=size
+    print(f"Validation Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {vloss:>8f} \n")
+    return vloss, correct
+
+train_logs_path = LOGS_DIR + f"{timestamp}_training_logs.jsonl"
 
 for epoch in range(args.num_epochs):
-    print(f'EPOCH {epoch_number + 1}:')
+    print(f'EPOCH {epoch + 1}:')
 
     # Make sure gradient tracking is on, and do a pass over the data
     net.train(True)
-    avg_loss = train_one_epoch(epoch_number)
+    train_loss, train_correct = train()
 
-
-    running_vloss = 0.0
-    # Set the model to evaluation mode, disabling dropout and using population
-    # statistics for batch normalization.
     net.eval()
+    vloss, correct = val()
+    record = {}
+    record["train_loss"] = train_loss
+    record["train_accuracy"] = train_correct
+    record["validation_loss"] = vloss
+    record["validation_accuracy"] = correct
+    with open(train_logs_path, 'w') as f:
+        f.write(json.dumps(record) + "\n")
 
-    # Disable gradient computation and reduce memory consumption.
-    with nn.no_grad():
-        for i, vdata in enumerate(val_loader):
-            vinputs, vlabels = vdata
-            voutputs = net(vinputs)
-            vloss = loss_function(voutputs, vlabels)
-            running_vloss += vloss
+hp_logs = vars(args)
+del hp_logs["data_dir"]
+hp_logs["fc_width"] = net.width
 
-    avg_vloss = running_vloss / (i + 1)
-    print(f'Loss: train {avg_loss} | valid {avg_vloss}')
+hp_logs_path = LOGS_DIR + f"{timestamp}_training_hyperparameters.json"
 
-    # Log the running loss averaged per batch
-    # for both training and validation
+with open(hp_logs_path, 'w') as f:
+    json.dump(hp_logs_path, indent=4)
 
-    # Track best performance, and save the model's state
-    if avg_vloss < best_vloss:
-        best_vloss = avg_vloss
-        model_path = f'model_{timestamp}_{epoch_number}'
-        nn.save(net.state_dict(), model_path)
-
-    epoch_number += 1
+model_path = Path(f"../checkpoints/model_{args.model}_{args.dataset}_{timestamp}.pth")
+nn.save(net.state_dict(), model_path)
+print(f"Saved PyTorch Model State to {model_path}")

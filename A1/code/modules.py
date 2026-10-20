@@ -2,6 +2,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+def init_weights(m, init_method, gain, generator, verbose=False):
+    if verbose:
+        print(m)
+    if type(m) is nn.Module:
+        init_method(m, gain, generator)
+        if verbose:
+            print(m.weight) 
+
 class LinearActivation(nn.Module):
     def __init__(self, in_feat, out_feat, activation):
         super().__init__()

@@ -52,23 +52,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", type=str, default=DATA_DIR)
     parser.add_argument("--dataset", default=DATASET_NAME)
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
-    parser.add_argument("--model", default="cnn")
+    parser.add_argument("--model", default="mlp")
     
     parser.add_argument("--optimizer", type=str, default="sgd")
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     
     parser.add_argument("--init-method", type=str, default="kaiming_uniform")
     parser.add_argument("--activation-method", type=str, default="relu")
-    parser.add_argument("--dropout", type=float, default=0.0)
+    parser.add_argument("--dropout", type=float, default=0.2)
     parser.add_argument("--regularization-term", type=str, default="", help="Options include 'l2', 'l1', etc.")
     parser.add_argument("--weight-decay", type=float, default=0.0)
     
-    parser.add_argument("--n-hidden-fc-layers", type=int, default=2)
+    parser.add_argument("--n-hidden-fc-layers", type=int, default=16)
     parser.add_argument("--fc-width", type=int, default=512)
     parser.add_argument("--bias", action="store_true")
     parser.add_argument("--kernel-size", type=int, default=3)
     
-    parser.add_argument("--num-epochs", type=int, default=50)
+    parser.add_argument("--num-epochs", type=int, default=300)
     return parser.parse_args()
 
 args = parse_args()

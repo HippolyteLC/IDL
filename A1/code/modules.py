@@ -2,6 +2,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+D_max = 1024
+
+PARAMETER_BUDGET = 1.5e9
+
 def init_weights(m, init_method, gain, generator, verbose=False):
     if verbose:
         print(m)
@@ -9,6 +13,10 @@ def init_weights(m, init_method, gain, generator, verbose=False):
         init_method(m, gain, generator)
         if verbose:
             print(m.weight) 
+
+def compute_parameters(m):
+    if isinstance(m, Conv2DActivationPool):
+        return m.in_channels * m.out_channels * m.kernel_size + m.out_channels
 
 class LinearActivation(nn.Module):
     def __init__(self, in_feat, out_feat, activation):
@@ -42,9 +50,11 @@ class DynamicMLP(nn.Module):
     
     Produces K hidden layers of fixed D width. Outputs raw logits. 
     """
-    def __init__(self, H, W, out_feat, K, D):
+    def __init__(self, H, W, out_feat, K, D=None):
         super().__init__()
         in_feat = H*W
+        if D is None:
+            D = min(D_max, np.floor(np.sqrt(PARAMETER_BUDGET/K)))
         layers = [LinearActivation(in_feat, D)]
         for _ in range(K-1):
             layers.append(LinearActivation(D, D))
@@ -79,6 +89,12 @@ class DynamicCNN(nn.Module):
             layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size))
             C_o *= 2
 
+        used_parameter_budget = sum([m.apply(compute_parameters) for m in layers])
+        left_over_params = PARAMETER_BUDGET - used_parameter_budget
+
+        if D is None:
+            D = min(D_max, np.floor(np.sqrt(PARAMETER_BUDGET/K)))
+        
         in_feat = 2*2*C_o
         layers.append(LinearActivation(in_feat, D))
         for _ in range(K-1):

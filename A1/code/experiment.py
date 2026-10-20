@@ -1,6 +1,3 @@
-# write a training module
-
-# should include optimizer choice, epochs, initialization, model selection, regularization
 import argparse
 
 from pathlib import Path
@@ -26,14 +23,15 @@ import os
 
 DATA_DIR = "../data"
 DATASET_NAME = "fashionmnist"
-BATCH_SIZE = 64 
+BATCH_SIZE = 1024 
 
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-LOGS_DIR = Path("../logs")
+LOGS_DIR = Path(__file__).parent.parent / "logs"
 if not os.path.exists(LOGS_DIR):
     os.makedirs(LOGS_DIR)
-CHECKPOINTS_DIR = Path("../checkpoints")
+
+CHECKPOINTS_DIR = Path(__file__).parent.parent / "checkpoints"
 if not os.path.exists(CHECKPOINTS_DIR):
     os.makedirs(CHECKPOINTS_DIR)
 
@@ -42,31 +40,35 @@ hp_logs_path = LOGS_DIR / f"{timestamp}_training_hyperparameters.json"
 
 lambda_reg=0.01 # for loss regularization terms
 
-device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
 def parse_args() -> argparse.Namespace:
     """Parse the reproducible experiment command-line options."""
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", default=DATASET_NAME)
-    parser.add_argument("--model", default="mlp")
     parser.add_argument("--seed", type=int, default=111)
     parser.add_argument("--split-seed", type=int, default=2026)
     parser.add_argument("--data-dir", type=str, default=DATA_DIR)
+    parser.add_argument("--dataset", default=DATASET_NAME)
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
-    parser.add_argument("--init-method", type=str, default="kaiming_uniform")
-    parser.add_argument("--activation-method", type=str, default="relu")
+    parser.add_argument("--model", default="cnn")
+    
     parser.add_argument("--optimizer", type=str, default="sgd")
     parser.add_argument("--learning-rate", type=float, default=1e-3)
+    
+    parser.add_argument("--init-method", type=str, default="kaiming_uniform")
+    parser.add_argument("--activation-method", type=str, default="relu")
     parser.add_argument("--dropout", type=float, default=0.0)
     parser.add_argument("--regularization-term", type=str, default="", help="Options include 'l2', 'l1', etc.")
     parser.add_argument("--weight-decay", type=float, default=0.0)
-    parser.add_argument("--n-hidden-fc-layers", type=int, default=5)
+    
+    parser.add_argument("--n-hidden-fc-layers", type=int, default=2)
     parser.add_argument("--fc-width", type=int, default=512)
-    parser.add_argument("--bias", type=bool, default=False)
+    parser.add_argument("--bias", action="store_true")
     parser.add_argument("--kernel-size", type=int, default=3)
-    parser.add_argument("--num-epochs", type=int, default=20)
+    
+    parser.add_argument("--num-epochs", type=int, default=50)
     return parser.parse_args()
 
 args = parse_args()
@@ -104,7 +106,7 @@ elif args.model.lower() == "cnn":
 
 net.apply(partial(init_weights,
                   init_method=load_init_method(args.init_method),
-                generator=generator))
+                ))
 net.to(device)
 
 optimizer_method = load_optimizer_method(args.optimizer)
@@ -193,7 +195,7 @@ def main():
         record["train_accuracy"] = train_correct
         record["validation_loss"] = vloss
         record["validation_accuracy"] = correct
-        
+        record = {k: float(v) for k, v in record.items()}
         with open(train_logs_path, 'a') as f:
             f.write(json.dumps(record) + "\n")
 
@@ -205,7 +207,7 @@ def main():
         json.dump(hp_logs, f, indent=4)
 
     
-    model_path = Path(f"../checkpoints/model_{args.model}_{args.dataset}_{timestamp}.pth")
+    model_path = CHECKPOINTS_DIR / f"model_{args.model}_{args.dataset}_{timestamp}.pth"
 
     torch.save(net.state_dict(), model_path)
     print(f"Saved PyTorch Model State to {model_path}")

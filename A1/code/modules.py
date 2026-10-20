@@ -8,16 +8,23 @@ D_max = 1<<11 # 2048
 
 PARAMETER_BUDGET = 5e9 # max number of parameters for an RTX 4060 GPU 
 
-def init_weights(m, init_method, generator, verbose=False):
+def init_weights(m, init_method, verbose=False):
     if verbose:
         print(m)
-    if type(m) in {nn.Linear, LinearActivation, Conv2DActivationPool}:
-        init_method(m, generator=generator)
+    if type(m) == nn.Linear:
+        init_method(m.weight)
+        if verbose:
+            print(m.weight) 
+    elif type(m) == nn.Conv2d:
+        init_method(m.weight)
         if verbose:
             print(m.weight) 
         if m.bias is not None:                     # None when bias=False
             nn.init.zeros_(m.bias)
-
+            
+# def init_weights(m):
+#     if isinstance(m, (nn.Linear, nn.Conv2d)) and m.bias is not None:
+#         nn.init.zeros_(m.bias)
 # def compute_parameters(m):
 #     if isinstance(m, Conv2DActivationPool):
 #         return m.in_channels * m.out_channels * m.kernel_size + m.out_channels
@@ -26,10 +33,12 @@ class LinearActivation(nn.Module):
     def __init__(self, in_feat, out_feat, activation, dropout=0, bias=False):
         super().__init__()
         self.a = activation
+        self.bias = bias
         self.flatten = nn.Flatten()
+        self.linear = nn.Linear(in_feat, out_feat, bias=bias)
         layers = [
             nn.Linear(in_feat, out_feat, bias=bias),
-            self.a
+            self.a()
         ]
         if dropout:
             layers.append(nn.Dropout(dropout))
@@ -43,14 +52,17 @@ class Conv2DActivationPool(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, activation, dropout=0, bias=False):
         super().__init__()
         self.a = activation
+        self.bias = bias
+        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, bias=bias)
         layers = [
             nn.Conv2d(in_channels, out_channels, kernel_size, padding='same', bias=bias),
-            self.a,
+            self.a(),
             nn.MaxPool2d(2,2, ceil_mode=True),
         ]
         if dropout:
             layers.append(nn.Dropout(dropout))
         self.conv2d_relu_pool_stack = nn.Sequential(*layers)
+    
     def forward(self, x):
         return self.conv2d_relu_pool_stack(x)
     

@@ -15,9 +15,15 @@ from utils import load_init_method, load_optimizer_method, get_activation_method
 
 import numpy as np
 
+from datetime import datetime 
+
 DATA_DIR = "../data"
 DATASET_NAME = "fashionmnist"
 BATCH_SIZE = 64 
+
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+lambda_reg=0.01 # for loss regularization terms
 
 def parse_args() -> argparse.Namespace:
     """Parse the reproducible experiment command-line options."""
@@ -41,12 +47,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--n-hidden-fc-layers", type=int, default=5)
     parser.add_argument("--fc-width", type=int, default=None)
     parser.add_argument("--kernel-size", type=int, default=3)
-    parser.add_argument("--num-epochs", type=int, default=100)
+    parser.add_argument("--num-epochs", type=int, default=20)
     return parser.parse_args()
 
 args = parse_args()
 
-datahandler = DataHandler(data_dir=args.data_dir, dataset_name=args.dataset, batch_size=args.batch_size)
+generator = nn.Generator()
+generator.manual_seed(args.seed)
+
+datahandler = DataHandler(data_dir=args.data_dir, dataset_name=args.dataset, batch_size=args.batch_size, seed=args.split_seed)
 train_loader, val_loader, test_loader = datahandler.data_loader()
 
 if args.dataset.lower() == "fashionmnist":
@@ -76,19 +85,17 @@ initialization_method = load_init_method(args.init_method)
 optimizer_method = load_optimizer_method(args.optimizer)
 loss_function = nn.CrossEntropyLoss()
 
-lambda_reg=0.01
 
 def train_one_epoch(
     ):
-    running_loss = 0.
-    last_loss = 0.
-
-    net.apply(init_weights(init_method=initialization_method, gain=gain))
+    net.apply(init_weights(init_method=initialization_method, generator=generator))
 
     criterion = loss_function
     optimizer = optimizer_method(net.parameters(), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
-
+    total_loss = 0.
+    last_loss = 0.
     running_loss = 0.0
+    total_samples = 0
     for i, data in enumerate(train_loader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
@@ -106,50 +113,49 @@ def train_one_epoch(
         optimizer.step()
 
         # Gather data and report
-        running_loss += loss.item()
+        running_loss += loss.item() * inputs.size(0)
+        total_loss += loss.item() * inputs.size(0)
+        total_samples += inputs.size(0)
         if i % 1000 == 999:
-            last_loss = running_loss / 1000 # loss per batch
+            last_loss = (running_loss) / 1000 # loss per batch
             print(f'  batch {i + 1} loss: {last_loss}')
-            running_loss = 0.
+            running_loss = 0. 
 
         # print('Finished Training')
-        
+    epoch_train_loss = total_loss / total_samples
+    return epoch_train_loss
 
 for epoch in range(args.num_epochs):
     print(f'EPOCH {epoch_number + 1}:')
 
     # Make sure gradient tracking is on, and do a pass over the data
-    model.train(True)
-    avg_loss = train_one_epoch(epoch_number, writer)
+    net.train(True)
+    avg_loss = train_one_epoch(epoch_number)
 
 
     running_vloss = 0.0
     # Set the model to evaluation mode, disabling dropout and using population
     # statistics for batch normalization.
-    model.eval()
+    net.eval()
 
     # Disable gradient computation and reduce memory consumption.
-    with torch.no_grad():
-        for i, vdata in enumerate(validation_loader):
+    with nn.no_grad():
+        for i, vdata in enumerate(val_loader):
             vinputs, vlabels = vdata
-            voutputs = model(vinputs)
-            vloss = loss_fn(voutputs, vlabels)
+            voutputs = net(vinputs)
+            vloss = loss_function(voutputs, vlabels)
             running_vloss += vloss
 
     avg_vloss = running_vloss / (i + 1)
-    print(f'LOSS train {avg_loss} valid {avg_vloss}')
+    print(f'Loss: train {avg_loss} | valid {avg_vloss}')
 
     # Log the running loss averaged per batch
     # for both training and validation
-    writer.add_scalars('Training vs. Validation Loss',
-                    { 'Training' : avg_loss, 'Validation' : avg_vloss },
-                    epoch_number + 1)
-    writer.flush()
 
     # Track best performance, and save the model's state
     if avg_vloss < best_vloss:
         best_vloss = avg_vloss
         model_path = f'model_{timestamp}_{epoch_number}'
-        torch.save(model.state_dict(), model_path)
+        nn.save(net.state_dict(), model_path)
 
     epoch_number += 1

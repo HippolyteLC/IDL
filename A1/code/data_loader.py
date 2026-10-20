@@ -9,13 +9,14 @@ from pathlib import Path
 
 
 class DataHandler:
-    def __init__(self, data_dir="../data", dataset_name="fashionmnist", batch_size=64, val_split=0.1):
+    def __init__(self, data_dir="../data", dataset_name="fashionmnist", batch_size=64, val_split=0.1, seed=111):
         self.data_dir = Path(data_dir).expanduser().resolve()
         self.data_dir.mkdir(parents=True, exist_ok=True)
         
         self.dataset_name = dataset_name
         self.batch_size = batch_size
         self.val_split = val_split
+        self.seed = seed
         if self.dataset_name.lower() == "fashionmnist": 
             self.data_class = datasets.FashionMNIST 
         elif self.dataset_name.lower() == "cifar10":
@@ -25,7 +26,7 @@ class DataHandler:
         self.val_loader = None
         self.test_loader = None
 
-    def initialize_dataset(self, seed=111):
+    def initialize_dataset(self):
         """
         Loads dataset (either dl or from data dir)
         Then wraps them in dataloaders. 
@@ -37,7 +38,7 @@ class DataHandler:
             transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
         )
         
-        generator = torch.Generator().manual_seed(seed)
+        generator = torch.Generator().manual_seed(self.seed)
         train_length = int(round(len(train_val)*(1-self.val_split)))
         val_length = len(train_val) - train_length
         train, val = random_split(train_val, [train_length, val_length], generator)

@@ -63,7 +63,7 @@ def train(data_loader, optimizer, net, loss_fn, regularization_term):
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
-    for batch, (X, y) in enumerate(data_loader, 0):
+    for _, (X, y) in enumerate(data_loader, 0):
         # get the inputs; data is a list of [inputs, labels]
         X, y = X.to(device), y.to(device)
 
@@ -80,12 +80,8 @@ def train(data_loader, optimizer, net, loss_fn, regularization_term):
         loss_reg.backward()
         optimizer.step()
 
-        # Gather data and report
         total_loss += loss.detach() * X.size(0)
         total_correct += (outputs.argmax(1) == y).sum()
-        # if batch % 100 == 0:
-        #     loss, current = loss.item(), (batch + 1) * len(X)
-        #     print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
     total_loss = total_loss.item()/size
     total_correct = total_correct.item()/size

@@ -15,5 +15,7 @@
     "n_hidden_fc_layers": 8,
     "fc_width": 128,
     "bias": true,
-    "kernel_size": 3
+    "kernel_size": 3,
+    "last_train_accuracy": 0.8993333333333333,
+    "last_val_accuracy": 0.8863333463668823
 }

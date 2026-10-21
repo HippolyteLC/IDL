@@ -15,5 +15,7 @@
     "fc_width": 128,
     "bias": false,
     "kernel_size": 3,
-    "num_epochs": 50
+    "num_epochs": 50,
+    "last_train_accuracy": 0.952925925925926,
+    "last_val_accuracy": 0.8921666741371155
 }

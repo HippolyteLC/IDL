@@ -189,19 +189,20 @@ def main():
         train_loss, train_correct = train(train_loader, optimizer, net, loss_function, args.regularization_term)
 
         net.eval()
-        vloss, correct = val(val_loader, net, loss_function)
+        vloss, vcorrect = val(val_loader, net, loss_function)
         record = {}
         record["train_loss"] = train_loss
         record["train_accuracy"] = train_correct
         record["validation_loss"] = vloss
-        record["validation_accuracy"] = correct
+        record["validation_accuracy"] = vcorrect
         record = {k: float(v) for k, v in record.items()}
         with open(train_logs_path, 'a') as f:
             f.write(json.dumps(record) + "\n")
 
     hp_logs = vars(args).copy()
     del hp_logs["data_dir"]
-    hp_logs["fc_width"] = net.width
+    hp_logs["last_train_accuracy"] = record["train_accuracy"]
+    hp_logs["last_val_accuracy"] = record["validation_accuracy"]
 
     with open(hp_logs_path, 'w') as f:
         json.dump(hp_logs, f, indent=4)

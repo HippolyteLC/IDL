@@ -19,7 +19,7 @@ def init_weights(m, init_method, verbose=False):
             nn.init.zeros_(m.bias)
             
 class LinearActivation(nn.Module):
-    def __init__(self, in_feat, out_feat, activation, dropout=0, bias=False):
+    def __init__(self, in_feat, out_feat, activation, dropout, bias, batch_norm):
         super().__init__()
         self.a = activation
         self.bias = bias
@@ -29,6 +29,8 @@ class LinearActivation(nn.Module):
             nn.Linear(in_feat, out_feat, bias=bias),
             self.a()
         ]
+        if batch_norm:
+            layers.insert(1, nn.BatchNorm1d(out_feat))
         if dropout:
             layers.append(nn.Dropout(p=dropout))
         self.linear_relu_stack = nn.Sequential(*layers)
@@ -38,7 +40,7 @@ class LinearActivation(nn.Module):
         return self.linear_relu_stack(x)
 
 class Conv2DActivationPool(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, activation, dropout=0, bias=False):
+    def __init__(self, in_channels, out_channels, kernel_size, activation, dropout, bias, batch_norm):
         super().__init__()
         self.a = activation
         self.bias = bias
@@ -48,6 +50,8 @@ class Conv2DActivationPool(nn.Module):
             self.a(),
             nn.MaxPool2d(2,2, ceil_mode=True),
         ]
+        if batch_norm:
+            layers.insert(1, nn.BatchNorm2d(out_channels))
         if dropout:
             layers.append(nn.Dropout(p=dropout))
         self.conv2d_relu_pool_stack = nn.Sequential(*layers)
@@ -61,12 +65,12 @@ class DynamicMLP(nn.Module):
     
     Produces K hidden layers of fixed D width. Outputs raw logits. 
     """
-    def __init__(self, H, W, C_i, out_feat, K, D=None, dropout=0, activation=None, bias=False):
+    def __init__(self, H, W, C_i, out_feat, K, D=None, dropout=0, activation=None, bias=False, batch_norm=False):
         super().__init__()
         in_feat = H*W*C_i
-        layers = [LinearActivation(in_feat, D, activation, dropout=dropout, bias=bias)]
+        layers = [LinearActivation(in_feat, D, activation, dropout=dropout, bias=bias, batch_norm=False)]
         for _ in range(K-1):
-            layers.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias))
+            layers.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias, batch_norm=False))
         layers.append(nn.Linear(D, out_feat))
         
         self.mlp = nn.Sequential(*layers)
@@ -89,22 +93,22 @@ class DynamicCNN(nn.Module):
     At the end K hidden FC layers are appended with fixed width D. 
     OUtputs raw logits. 
     """
-    def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False):
+    def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False):
         super().__init__()
         n_pools = int(max(0, np.ceil(np.log2(H/(1<<2)))))
 
-        layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias)]
+        layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=False)]
         C_o = H*1
         for _ in range(n_pools-1):
-            layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation, dropout=dropout, bias=bias))
+            layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=False))
             C_o *= 2
 
         conv = nn.Sequential(*layers)
         with torch.no_grad():
             in_feat = conv(torch.zeros(1, C_i, H, W)).numel()
-        layers.append(LinearActivation(in_feat, D, activation, dropout=dropout, bias=bias))
+        layers.append(LinearActivation(in_feat, D, activation, dropout=dropout, bias=bias, batch_norm=False))
         for _ in range(K-1):
-            layers.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias))
+            layers.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias, batch_norm=False))
         layers.append(nn.Linear(D, out_feat))
 
         self.cnn = nn.Sequential(*layers)

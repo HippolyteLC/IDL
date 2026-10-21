@@ -11,8 +11,9 @@ from pathlib import Path
 
 
 class DataHandler:
-    def __init__(self, data_dir="../data", dataset_name="fashionmnist", device="cpu", batch_size=64, val_split=0.1, seed=111):
-        self.data_dir = Path(data_dir).expanduser().resolve()
+    def __init__(self, data_dir, dataset_name="fashionmnist", device="cpu", batch_size=64, val_split=0.1, seed=111):
+        
+        self.data_dir = data_dir if data_dir else Path(data_dir).expanduser().resolve()
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.device = device
         

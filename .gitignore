@@ -2,3 +2,6 @@ assignment_1/__pycache__/
 data/
 A1/checkpoints/
 A1/code/__pycache__/
+A1/code/plotting.py
+
+A1/figures/

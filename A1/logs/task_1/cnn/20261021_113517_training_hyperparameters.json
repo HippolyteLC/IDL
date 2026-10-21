@@ -1,0 +1,21 @@
+{
+    "dataset": "fashionmnist",
+    "seed": 111,
+    "split_seed": 2026,
+    "batch_size": 1024,
+    "model": "cnn",
+    "num_epochs": 20,
+    "optimizer": "adam",
+    "learning_rate": 0.003,
+    "init_method": "kaiming_uniform",
+    "activation_method": "leakyrelu",
+    "dropout": 0.2,
+    "regularization_term": "",
+    "weight_decay": 0,
+    "n_hidden_fc_layers": 2,
+    "fc_width": 512,
+    "bias": true,
+    "kernel_size": 5,
+    "last_train_accuracy": 0.920537037037037,
+    "last_val_accuracy": 0.9198333024978638
+}

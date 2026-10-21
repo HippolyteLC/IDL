@@ -165,12 +165,11 @@ def main():
     kernel_size = args.kernel_size
 
     activation = get_activation_method(args.activation_method)
-    dropout = args.dropout
 
     if args.model.lower() == "mlp":
-        net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=dropout, bias=args.bias)
+        net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias)
     elif args.model.lower() == "cnn":
-        net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=dropout, bias=args.bias)
+        net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias)
 
     net.apply(partial(init_weights,
                     init_method=load_init_method(args.init_method),

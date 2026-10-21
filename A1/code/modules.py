@@ -4,10 +4,6 @@ import numpy as np
 
 import torch
 
-D_max = 1<<11 # 2048
-
-PARAMETER_BUDGET = 5e9 # max number of parameters for an RTX 4060 GPU 
-
 def init_weights(m, init_method, verbose=False):
     if verbose:
         print(m)
@@ -19,16 +15,9 @@ def init_weights(m, init_method, verbose=False):
         init_method(m.weight)
         if verbose:
             print(m.weight) 
-        if m.bias is not None:                     # None when bias=False
+        if m.bias is not None:
             nn.init.zeros_(m.bias)
             
-# def init_weights(m):
-#     if isinstance(m, (nn.Linear, nn.Conv2d)) and m.bias is not None:
-#         nn.init.zeros_(m.bias)
-# def compute_parameters(m):
-#     if isinstance(m, Conv2DActivationPool):
-#         return m.in_channels * m.out_channels * m.kernel_size + m.out_channels
-
 class LinearActivation(nn.Module):
     def __init__(self, in_feat, out_feat, activation, dropout=0, bias=False):
         super().__init__()
@@ -75,8 +64,6 @@ class DynamicMLP(nn.Module):
     def __init__(self, H, W, C_i, out_feat, K, D=None, dropout=0, activation=None, bias=False):
         super().__init__()
         in_feat = H*W*C_i
-        # if D is None:
-        #     D = int(min(D_max, np.floor(np.sqrt(PARAMETER_BUDGET/K))))
         layers = [LinearActivation(in_feat, D, activation, bias=bias)]
         for _ in range(K-1):
             layers.append(LinearActivation(D, D, activation, bias=bias))
@@ -104,7 +91,6 @@ class DynamicCNN(nn.Module):
     """
     def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False):
         super().__init__()
-        # have some base channel output, then
         n_pools = int(max(0, np.ceil(np.log2(H/(1<<2)))))
 
         layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, bias=bias)]
@@ -113,11 +99,6 @@ class DynamicCNN(nn.Module):
             layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation, bias=bias))
             C_o *= 2
 
-        # used_parameter_budget = sum([m.apply(compute_parameters) for m in layers])
-        # left_over_params = PARAMETER_BUDGET - used_parameter_budget
-
-        # if D is None:
-        #     D = min(D_max, np.floor(np.sqrt(PARAMETER_BUDGET/K)))
         conv = nn.Sequential(*layers)
         with torch.no_grad():
             in_feat = conv(torch.zeros(1, C_i, H, W)).numel()

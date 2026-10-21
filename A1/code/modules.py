@@ -30,7 +30,7 @@ class LinearActivation(nn.Module):
             self.a()
         ]
         if dropout:
-            layers.append(nn.Dropout(dropout))
+            layers.append(nn.Dropout(p=dropout))
         self.linear_relu_stack = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -49,7 +49,7 @@ class Conv2DActivationPool(nn.Module):
             nn.MaxPool2d(2,2, ceil_mode=True),
         ]
         if dropout:
-            layers.append(nn.Dropout(dropout))
+            layers.append(nn.Dropout(p=dropout))
         self.conv2d_relu_pool_stack = nn.Sequential(*layers)
     
     def forward(self, x):
@@ -64,9 +64,9 @@ class DynamicMLP(nn.Module):
     def __init__(self, H, W, C_i, out_feat, K, D=None, dropout=0, activation=None, bias=False):
         super().__init__()
         in_feat = H*W*C_i
-        layers = [LinearActivation(in_feat, D, activation, bias=bias)]
+        layers = [LinearActivation(in_feat, D, activation, dropout=dropout, bias=bias)]
         for _ in range(K-1):
-            layers.append(LinearActivation(D, D, activation, bias=bias))
+            layers.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias))
         layers.append(nn.Linear(D, out_feat))
         
         self.mlp = nn.Sequential(*layers)
@@ -93,18 +93,18 @@ class DynamicCNN(nn.Module):
         super().__init__()
         n_pools = int(max(0, np.ceil(np.log2(H/(1<<2)))))
 
-        layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, bias=bias)]
+        layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias)]
         C_o = H*1
         for _ in range(n_pools-1):
-            layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation, bias=bias))
+            layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation, dropout=dropout, bias=bias))
             C_o *= 2
 
         conv = nn.Sequential(*layers)
         with torch.no_grad():
             in_feat = conv(torch.zeros(1, C_i, H, W)).numel()
-        layers.append(LinearActivation(in_feat, D, activation, bias=bias))
+        layers.append(LinearActivation(in_feat, D, activation, dropout=dropout, bias=bias))
         for _ in range(K-1):
-            layers.append(LinearActivation(D, D, activation, bias=bias))
+            layers.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias))
         layers.append(nn.Linear(D, out_feat))
 
         self.cnn = nn.Sequential(*layers)

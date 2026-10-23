@@ -57,7 +57,7 @@ class ClockDataset(Dataset):
         return image, label
 
 class DataHandler:
-    def __init__(self, data_dir, dataset_name="fashionmnist", device="cpu", batch_size=1024, val_split=0.1, seed=111):
+    def __init__(self, data_dir, dataset_name="fashionmnist", device="cpu", batch_size=1024, val_split=0.1, seed=111, transform=None, target_transform=None):
         
         self.data_dir = data_dir if data_dir else Path(data_dir).expanduser().resolve()
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -72,7 +72,7 @@ class DataHandler:
         elif self.dataset_name.lower() == "cifar10":
             self.data_class = datasets.CIFAR10
         elif self.dataset_name.lower() in ("clock_75", "clock_150"):
-            self.data_class = ClockDataset(dataset_name=dataset_name)
+            self.data_class = ClockDataset(dataset_name=dataset_name, transform=transform, target_transform=target_transform)
 
         self.transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
@@ -115,6 +115,15 @@ class DataHandler:
             X_train, y_train = imgs[train.indices], labels[train.indices] 
             X_val, y_val = imgs[val.indices], labels[val.indices] 
             X_test, y_test = imgs[test.indices], labels[test.indices] 
+
+            if self.data_class.transform is not None:
+                X_train = self.data_class.transform(X_train)
+                X_val = self.data_class.transform(X_val)
+                X_test = self.data_class.transform(X_test)
+            if self.data_class.target_transform is not None:
+                y_train = self.data_class.target_transform(y_train)
+                y_val = self.data_class.target_transform(y_val)
+                y_test = self.data_class.target_transform(y_test)
 
         else:
             train_val = self.data_class(root=str(self.data_dir), train=True, download=True, transform=self.transform)

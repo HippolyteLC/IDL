@@ -38,6 +38,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default="cnn")
     parser.add_argument("--num-epochs", type=int, default=50)
 
+    # clock time predictor params
+    parser.add_argument("--num-heads", type=int, default=2)
+    parser
+
     # optimizer + lr 
     parser.add_argument("--optimizer", type=str, default="adam")
     parser.add_argument("--learning-rate", type=float, default=1e-3)

@@ -2,6 +2,7 @@ from torch.nn.init import xavier_uniform_, xavier_normal_, kaiming_uniform_, nor
 from torch.optim import SGD, Adam, AdamW
 from torch.nn import ReLU, GELU, LeakyReLU, Module
 import torch
+import torch.nn as nn
 
 def load_init_method(method):
     method = method.lower()
@@ -66,7 +67,7 @@ def get_label_converter_fn(method: int, out_feat):
         def convert_to_two_decimals(label):
             h, m = label[:,0], label[:,1] 
             label_in_mins = h*60 + m 
-            return torch.round((label_in_mins/60)*100) / 100
+            return torch.round((label_in_mins/720)*100) / 100
         return convert_to_two_decimals
     elif method == 2:
         def split_label(label):
@@ -101,7 +102,24 @@ def get_label_converter_fn(method: int, out_feat):
                 torch.sin(angle_min),
                 torch.cos(angle_min)
                 ], dim=1)
+        return trig
     else:
         def same_label(label):
             return label
         return same_label
+
+def get_loss_fc(method: int, ):
+    if method == 0:
+        return nn.CrossEntropyLoss
+    elif method == 1: 
+
+def clock_accuracy(pred, label):
+    """
+    Common sense accuracy.
+    input: pred, label. outputs the shortest distance from pred to label considering
+    the full cycle of 720 minutes. 
+    """
+    pred_in_mins = pred[:,0]*60 + pred[:,1]
+    label_in_mins = label[:,0]*60 + label[:,1]
+    diff = torch.abs(pred_in_mins - label_in_mins)
+    return torch.minimum(diff, 720 - diff) 

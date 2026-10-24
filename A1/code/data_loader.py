@@ -3,6 +3,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets
 from torchvision.transforms import v2
+from torchvision.transforms.functional import normalize
 from torch.utils.data.dataset import random_split
 from torch.utils.data import TensorDataset, RandomSampler, SequentialSampler, BatchSampler
 
@@ -13,13 +14,15 @@ from torchvision.io import decode_image
 
 from pathlib import Path
 
-def transform(mean, std):
-    transform = v2.compose([
-                v2.ToImage(),
-                v2.ToDType(torch.float32, scale=True),
-                v2.Normalize(mean, std)
-            ])
-    return transform
+DATA_DIR = Path(__file__).parent.parent / "data"
+
+# def transform(mean, std):
+#     transform = v2.Compose([
+#                 v2.ToImage(),
+#                 v2.ToDtype(torch.float32, scale=True),
+#                 v2.Normalize(mean, std)
+#             ])
+#     return transform
 
 def target_transform(ds):
     hours = ds[:,0]
@@ -34,37 +37,30 @@ def target_transform(ds):
         ], dim=1)
 
 class ClockDataset(Dataset):
-    def __init__(self, dataset_name, transform=None, target_transform=None, seed=111):
+    def __init__(self, data_dir, dataset_name="clock_75", target_transform=None, seed=111):
         if dataset_name == "clock_75":
             sub_dir = "clock_data_75" 
         elif dataset_name == "150":
             sub_dir = "clock_data_150" 
         else:
             raise NameError("choose a valid dataset name")
-        ds_dir = Path(__file__).parent.parent / f"data/{sub_dir}"
+        ds_dir = data_dir / sub_dir
         annotations_file = ds_dir / "labels.npy"
         img_file = ds_dir / "images.npy"
         self.img_labels = torch.from_numpy(np.load(annotations_file))
         raw_imgs = torch.from_numpy(np.load(img_file))
-        if len(raw_imgs.shape) == 4:
-            imgs = raw_imgs.permute(0, 3, 1, 2)
-        else:
-            imgs = raw_imgs 
-
+        imgs = torch.unsqueeze(raw_imgs, 1)#.to(torch.float32)
         generator = torch.Generator().manual_seed(seed)
 
         dataset_length = len(self.img_labels)
         train_length = int(dataset_length * 0.8)
         val_length = int(dataset_length * 0.1) 
         test_length = dataset_length - train_length - val_length
-        train, val, test = random_split(self.data_class, [train_length, val_length, test_length], generator=generator)
+        train, val, test = random_split(self.img_labels, [train_length, val_length, test_length], generator=generator)
         self.splits = train, val, test
-
-        std, mean = torch.std_mean(train)
-        if transform is None:
-            self.imgs = transform(mean, std)(imgs)
-        else:
-            self.imgs = imgs
+        imgs = v2.ToDtype(torch.float32, scale=True)(imgs)
+        std, mean = torch.std_mean(imgs[train.indices], dim=(0,2,3))
+        self.imgs = v2.Normalize(mean, std)(imgs)
 
         self.target_transform = target_transform
 
@@ -75,7 +71,7 @@ class ClockDataset(Dataset):
         return self.imgs[idx], self.img_labels[idx]
 
 class DataHandler:
-    def __init__(self, data_dir, dataset_name="fashionmnist", device="cpu", batch_size=1024, val_split=0.1, seed=111, transform=None, target_transform=None):
+    def __init__(self, data_dir=DATA_DIR, dataset_name="fashionmnist", device="cpu", batch_size=1024, val_split=0.1, seed=111, target_transform=None):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.device = device
@@ -89,7 +85,7 @@ class DataHandler:
         elif self.dataset_name.lower() == "cifar10":
             self.data_class = datasets.CIFAR10
         elif self.dataset_name.lower() in ("clock_75", "clock_150"):
-            self.data_class = ClockDataset(dataset_name=dataset_name, transform=transform, target_transform=target_transform, seed=seed)
+            self.data_class = ClockDataset(data_dir=data_dir, dataset_name=dataset_name, target_transform=target_transform, seed=seed)
 
         self.transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
@@ -123,7 +119,7 @@ class DataHandler:
 
         if self.dataset_name in ("clock_75", "clock_150"):
             train, val, test = self.data_class.splits
-            imgs, labels = self.data_class.imgs, self.data_class.labels
+            imgs, labels = self.data_class.imgs, self.data_class.img_labels
             X_train, y_train = imgs[train.indices], labels[train.indices] 
             X_val, y_val = imgs[val.indices], labels[val.indices] 
             X_test, y_test = imgs[test.indices], labels[test.indices] 
@@ -156,11 +152,14 @@ class DataHandler:
         return self.train_loader, self.val_loader, self.test_loader
 
 def main():
-    train_loader, val_loader, test_loader = DataHandler(datasettransform=transform, target_transform=target_transform).data_loader()
+    train_loader, val_loader, test_loader = DataHandler(dataset_name="clock_75", target_transform=None).data_loader()
     images, labels = next(iter(train_loader))
+    h12= [labels for _, labels in test_loader if labels[0][0]==0]
+    has_hour_12 = len(h12) > 0
     print(f"Batch image shape: {images.shape}") # Should be 64, 1 (channel), 28,28
     print(f"Batch label shape: {labels.shape}") # Should be 64, (labels)
+    print(f"Label looks like:{labels[0][0]} andhas type {type(labels[0])}")
     print(f"Pixel value range: min={images.min():.2f}, max={images.max():.2f}") # the scaling from v2Compose in [0,1]
-    
+    print(f"Has hour == 12: {has_hour_12}, {h12[0]}")
 if __name__=="__main__":
     main()

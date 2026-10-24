@@ -44,6 +44,31 @@ def get_regularization_term(method, m):
         return sum(p.pow(2).sum() for p in m.parameters())
     return 0
 
+def get_net_dims(method, dataset_name, num_clock_classes):
+    if method in ("clock_75", "clock_150"):
+        cm = method
+        if cm == 0:
+            out_feat = num_clock_classes
+            num_output_heads = 1
+        elif cm == 1:
+            out_feat = 1
+            num_output_heads = 1
+        else:
+            num_output_heads = 2 
+        if cm == 2:
+            out_feat = [12, 60]
+        elif cm == 3:
+            out_feat = [12, 1]
+        elif cm == 4:
+            out_feat = [1, 60]
+        elif cm in (5, 6):
+            out_feat = 1
+        if dataset_name == "clock_75":
+            H, W = 75, 75
+        elif dataset_name == "clock_150":
+            H, W = 150, 150
+        C_i = 1
+    return H, W, out_feat, C_i
 
 def get_label_converter_fn(method: int, out_feat):
     """

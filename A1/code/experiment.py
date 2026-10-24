@@ -10,7 +10,7 @@ from modules import init_weights, DynamicMLP, DynamicCNN
 from data_loader import DataHandler
 
 from utils import load_init_method, load_optimizer_method, get_activation_method, get_regularization_term
-
+from utils import get_net_dims
 import numpy as np
 
 from datetime import datetime 
@@ -171,29 +171,37 @@ def main():
     generator = torch.Generator()
     generator.manual_seed(args.seed)
 
-    datahandler = DataHandler(data_dir=DATA_DIR, dataset_name=args.dataset, device=device, batch_size=args.batch_size, seed=args.split_seed)
+    dataset_name = args.dataset.lower()
+    datahandler = DataHandler(data_dir=DATA_DIR, dataset_name=dataset_name, device=device, batch_size=args.batch_size, seed=args.split_seed)
     train_loader, val_loader, test_loader = datahandler.data_loader()
 
-    if args.dataset.lower() == "fashionmnist":
+    cm = args.clock_method
+    
+    if dataset_name == "fashionmnist":
         H, W = 28, 28 
         out_feat = 10
         C_i = 1
-    elif args.dataset.lower() == "cifar10":
+    elif dataset_name == "cifar10":
         H, W = 32, 32
         out_feat = 10
         C_i = 3
-    else:
-        raise NotImplementedError("Define a valid dataset!")
+    elif dataset_name in ("clock_75", "clock_150"):
+        H, W, out_feat, C_i, num_output_heads = get_net_dims(
+            cm, dataset_name, args.num_clock_classes
+        )
 
     K = args.n_hidden_fc_layers
     D = args.fc_width
     kernel_size = args.kernel_size
 
     activation = get_activation_method(args.activation_method)
-
+    if cm == 6:
+        activation = nn.Tanh
     if args.model.lower() == "mlp":
         net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
     elif args.model.lower() == "cnn":
+        net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
+    elif args.model.lower() == "clock_cnn":
         net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
 
     net.apply(partial(init_weights,
@@ -214,7 +222,7 @@ def main():
         train_loss, train_correct = train(train_loader, optimizer, net, loss_function, args.regularization_term)
         net.eval()
         vloss, vcorrect = val(val_loader, net, loss_function)
-        
+
         record = {}
         record["train_loss"] = train_loss
         record["train_accuracy"] = train_correct

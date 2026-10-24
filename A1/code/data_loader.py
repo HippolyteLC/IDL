@@ -16,15 +16,6 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 
-# def transform(mean, std):
-#     transform = v2.Compose([
-#                 v2.ToImage(),
-#                 v2.ToDtype(torch.float32, scale=True),
-#                 v2.Normalize(mean, std)
-#             ])
-#     return transform
-
-
 class ClockDataset(Dataset):
     def __init__(self, data_dir, dataset_name="clock_75", target_transform=None, seed=111):
         if dataset_name == "clock_75":

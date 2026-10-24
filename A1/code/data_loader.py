@@ -24,17 +24,6 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 #             ])
 #     return transform
 
-def target_transform(ds):
-    hours = ds[:,0]
-    mins = ds[:,1]
-    angle_hour = 2 * torch.pi * (hours+mins/60)/12
-    angle_min = 2 * torch.pi * mins/60
-    return torch.stack([
-        torch.sin(angle_hour), 
-        torch.cos(angle_min), 
-        torch.sin(angle_hour),
-        torch.cos(angle_min)
-        ], dim=1)
 
 class ClockDataset(Dataset):
     def __init__(self, data_dir, dataset_name="clock_75", target_transform=None, seed=111):
@@ -154,12 +143,11 @@ class DataHandler:
 def main():
     train_loader, val_loader, test_loader = DataHandler(dataset_name="clock_75", target_transform=None).data_loader()
     images, labels = next(iter(train_loader))
-    h12= [labels for _, labels in test_loader if labels[0][0]==0]
-    has_hour_12 = len(h12) > 0
+    has_hour_12 = any([(labels[:, 0] == 12).any() for _, labels in test_loader]) # check if hour 12 is a value, it isnt
     print(f"Batch image shape: {images.shape}") # Should be 64, 1 (channel), 28,28
     print(f"Batch label shape: {labels.shape}") # Should be 64, (labels)
-    print(f"Label looks like:{labels[0][0]} andhas type {type(labels[0])}")
+    print(f"Label looks like:{labels[0]} andhas type {type(labels[0])}")
     print(f"Pixel value range: min={images.min():.2f}, max={images.max():.2f}") # the scaling from v2Compose in [0,1]
-    print(f"Has hour == 12: {has_hour_12}, {h12[0]}")
+    print(f"Has hour == 12: {has_hour_12}")
 if __name__=="__main__":
     main()

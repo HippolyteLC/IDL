@@ -153,6 +153,13 @@ class ClockCNNMultihead(ClockCNN):
     def forward(self, x):
         return tuple(f(self.shared_backbone(x)) for f in self.output_heads)
 
+class CyclicRegressionLoss(nn.Module):
+    def forward(self, pred, labels):
+        """ 
+        Assumes scaled output between 0 and 1.
+        """
+        return 1 - torch.cos((pred-labels)*2*torch.pi)
+
 
 
 

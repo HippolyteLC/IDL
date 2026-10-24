@@ -94,6 +94,34 @@ def train(data_loader, optimizer, net, loss_fn, regularization_term):
 
     return total_loss, total_correct
 
+def clock_prediction_train(data_loader, optimizer, net, loss_fn):
+    size = len(data_loader.dataset)
+    total_loss = torch.zeros((), device=device)
+    total_correct = torch.zeros((), device=device)
+    for _, (X, y) in enumerate(data_loader, 0):
+        # get the inputs; data is a list of [inputs, labels]
+        X, y = X.to(device), y.to(device)
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        outputs = net(X)
+        loss = loss_fn(outputs, y)
+
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.detach() * X.size(0)
+        total_correct += (outputs.argmax(1) == y).sum()
+    
+    total_loss = total_loss.item()/size
+    total_correct = total_correct.item()/size
+
+    print(f"Train Error: \n Accuracy: {(100*total_correct):>0.1f}%, Avg loss: {total_loss:>8f} \n")
+
+    return total_loss, total_correct    
+
 def val(data_loader, net, loss_fn):
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
@@ -184,9 +212,9 @@ def main():
         # Make sure gradient tracking is on, and do a pass over the data
         net.train(True)
         train_loss, train_correct = train(train_loader, optimizer, net, loss_function, args.regularization_term)
-
         net.eval()
         vloss, vcorrect = val(val_loader, net, loss_function)
+        
         record = {}
         record["train_loss"] = train_loss
         record["train_accuracy"] = train_correct

@@ -4,6 +4,8 @@ from torch.nn import ReLU, GELU, LeakyReLU, Module
 import torch
 import torch.nn as nn
 
+from modules import CyclicRegressionLoss
+
 def load_init_method(method):
     method = method.lower()
     if method == "xavier_normal":
@@ -103,15 +105,20 @@ def get_label_converter_fn(method: int, out_feat):
                 torch.cos(angle_min)
                 ], dim=1)
         return trig
-    else:
-        def same_label(label):
-            return label
-        return same_label
+    def same_label(label):
+        return label
+    return same_label
 
-def get_loss_fc(method: int, ):
+def get_loss_fc(method: int):
     if method == 0:
         return nn.CrossEntropyLoss
     elif method == 1: 
+        return CyclicRegressionLoss()
+    elif method in (2,3,4,5): 
+        return CyclicRegressionLoss(), nn.CrossEntropyLoss
+    elif method == 6:
+        return nn.CosineSimilarity()
+    return None
 
 def clock_accuracy(pred, label):
     """

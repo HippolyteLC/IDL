@@ -6,11 +6,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import SGD, Adam, AdamW
-from modules import init_weights, DynamicMLP, DynamicCNN
+from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead
 from data_loader import DataHandler
 
 from utils import load_init_method, load_optimizer_method, get_activation_method, get_regularization_term
-from utils import get_net_dims
+from utils import get_net_dims, get_loss_fc, clock_accuracy, get_label_converter_fn
 import numpy as np
 
 from datetime import datetime 
@@ -94,7 +94,10 @@ def train(data_loader, optimizer, net, loss_fn, regularization_term):
 
     return total_loss, total_correct
 
-def clock_prediction_train(data_loader, optimizer, net, loss_fn):
+def clock_train(data_loader, optimizer, net, loss_fn, cm):
+    """
+    cm: is the clock method 
+    """
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -155,7 +158,6 @@ def test(data_loader, net, loss_fn):
 def main():
     args = parse_args()
 
-    DATA_DIR = Path(__file__).parent.parent / "data"
     LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{args.task}/{args.model}"
     if not os.path.exists(LOGS_DIR):
         os.makedirs(LOGS_DIR)
@@ -172,7 +174,7 @@ def main():
     generator.manual_seed(args.seed)
 
     dataset_name = args.dataset.lower()
-    datahandler = DataHandler(data_dir=DATA_DIR, dataset_name=dataset_name, device=device, batch_size=args.batch_size, seed=args.split_seed)
+    datahandler = DataHandler(dataset_name=dataset_name, device=device, batch_size=args.batch_size, seed=args.split_seed)
     train_loader, val_loader, test_loader = datahandler.data_loader()
 
     cm = args.clock_method
@@ -195,15 +197,16 @@ def main():
     kernel_size = args.kernel_size
 
     activation = get_activation_method(args.activation_method)
-    if cm == 6:
+    if cm == 7:
         activation = nn.Tanh
+
     if args.model.lower() == "mlp":
         net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
     elif args.model.lower() == "cnn":
         net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
     elif args.model.lower() == "clock_cnn":
-        net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
-
+        net = ClockCNNMultihead(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm, num_heads=num_output_heads)
+    
     net.apply(partial(init_weights,
                     init_method=load_init_method(args.init_method),
                     ))
@@ -212,8 +215,13 @@ def main():
     optimizer_method = load_optimizer_method(args.optimizer)
     optimizer = optimizer_method(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
-    loss_function = nn.CrossEntropyLoss()
-
+    if not cm:
+        loss_function = nn.CrossEntropyLoss()
+    else:
+        loss_function = get_loss_fc(cm)
+        if isinstance(loss_function, tuple) and num_output_heads == 2:
+            loss_1, loss_2 = loss_function
+        
     for epoch in range(args.num_epochs):
         print(f'EPOCH {epoch + 1}:')
 

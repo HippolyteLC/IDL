@@ -47,28 +47,28 @@ def get_regularization_term(method, m):
 def get_net_dims(method, dataset_name, num_clock_classes):
     if method in ("clock_75", "clock_150"):
         cm = method
-        if cm == 0:
+        if cm == 1:
             out_feat = num_clock_classes
             num_output_heads = 1
-        elif cm == 1:
+        elif cm == 2:
             out_feat = 1
             num_output_heads = 1
         else:
             num_output_heads = 2 
-        if cm == 2:
+        if cm == 3:
             out_feat = [12, 60]
-        elif cm == 3:
-            out_feat = [12, 1]
         elif cm == 4:
+            out_feat = [12, 1]
+        elif cm == 5:
             out_feat = [1, 60]
-        elif cm in (5, 6):
+        elif cm in (6, 7):
             out_feat = 1
         if dataset_name == "clock_75":
             H, W = 75, 75
         elif dataset_name == "clock_150":
             H, W = 150, 150
         C_i = 1
-    return H, W, out_feat, C_i
+    return H, W, out_feat, C_i, num_output_heads
 
 def get_label_converter_fn(method: int, out_feat):
     """
@@ -80,7 +80,7 @@ def get_label_converter_fn(method: int, out_feat):
     """
     def convert_single_to_scalar(label):
         return torch.where(label > 11, torch.round(label / 60.0 * 100) / 100, torch.round(label / 12.0 * 100) / 100)
-    if method == 0:
+    if method == 1:
         def convert_to_bins(label):
             total_mins = 12*60
             assert out_feat <= total_mins, "maximum 720 minutes possible"
@@ -90,32 +90,32 @@ def get_label_converter_fn(method: int, out_feat):
             label_in_mins = h*60 + m 
             return torch.round(label_in_mins/mins_per_bin) * mins_per_bin 
         return convert_to_bins
-    elif method == 1: 
+    elif method == 2: 
         def convert_to_two_decimals(label):
             h, m = label[:,0], label[:,1] 
             label_in_mins = h*60 + m 
             return torch.round((label_in_mins/720)*100) / 100
         return convert_to_two_decimals
-    elif method == 2:
+    elif method == 3:
         def split_label(label):
             return label[:,0], label[:,1]
         return split_label
-    elif method == 3: 
+    elif method == 4: 
         def cls_reg(label):
             h, m = label[:,0], label[:,1] 
             return h, convert_single_to_scalar(m)
         return cls_reg
-    elif method == 4: 
+    elif method == 5: 
         def reg_cls(label):
             h, m = label[:,0], label[:,1] 
             return convert_single_to_scalar(h), m
         return reg_cls
-    elif method == 5:
+    elif method == 6:
         def reg_reg(label):
             h, m = label[:,0], label[:,1] 
             return convert_single_to_scalar(h), convert_single_to_scalar(m)
         return reg_reg
-    elif method == 6:
+    elif method == 7:
         def trig(label):
             hours = label[:,0]
             mins = label[:,1]
@@ -135,13 +135,13 @@ def get_label_converter_fn(method: int, out_feat):
     return same_label
 
 def get_loss_fc(method: int):
-    if method == 0:
+    if method == 1:
         return nn.CrossEntropyLoss
-    elif method == 1: 
+    elif method == 2: 
         return CyclicRegressionLoss()
-    elif method in (2,3,4,5): 
+    elif method in (3,4,5,6): 
         return CyclicRegressionLoss(), nn.CrossEntropyLoss
-    elif method == 6:
+    elif method == 7:
         return nn.CosineSimilarity()
     return None
 

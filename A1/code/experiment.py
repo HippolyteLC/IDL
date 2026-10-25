@@ -31,7 +31,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     # general reproducibility / 
     parser.add_argument("--save", action="store_true")
-    parser.add_argument("--task", type=int, default=1)
     parser.add_argument("--dataset", default="fashionmnist")
     parser.add_argument("--seed", type=int, default=111)
     parser.add_argument("--split-seed", type=int, default=2026)
@@ -41,7 +40,8 @@ def parse_args() -> argparse.Namespace:
 
     # clock time predictor params
     parser.add_argument("--num-heads", type=int, default=2)
-    parser
+    parser.add_argument("--clock-method", type=int, default=1)
+    parser.add_argument("--num-clock-classes", type=int, default=720)
 
     # optimizer + lr 
     parser.add_argument("--optimizer", type=str, default="adam")
@@ -57,7 +57,7 @@ def parse_args() -> argparse.Namespace:
 
     # architecture 
     parser.add_argument("--n-hidden-fc-layers", type=int, default=2)
-    parser.add_argument("--fc-width", type=int, default=512)
+    parser.add_argument("--fc-width", type=int, default=256)
     parser.add_argument("--bias", action="store_true")
     parser.add_argument("--kernel-size", type=int, default=7)
     
@@ -259,10 +259,15 @@ def main_test(data_loader, net, loss_fn):
 def main():
     args = parse_args()
 
-    LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{args.task}/{args.model}"
+    cm = args.clock_method
+    task = 1  
+    if cm:
+        task = 2
+
+    LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{args.model}"
     if not os.path.exists(LOGS_DIR):
         os.makedirs(LOGS_DIR)
-    CHECKPOINTS_DIR = Path(__file__).parent.parent / f"checkpoints/task_{args.task}/{args.model}"
+    CHECKPOINTS_DIR = Path(__file__).parent.parent / f"checkpoints/task_{task}/{args.model}"
     if not os.path.exists(CHECKPOINTS_DIR):
         os.makedirs(CHECKPOINTS_DIR)
 
@@ -277,8 +282,6 @@ def main():
     dataset_name = args.dataset.lower()
     datahandler = DataHandler(dataset_name=dataset_name, device=device, batch_size=args.batch_size, seed=args.split_seed)
     train_loader, val_loader, test_loader = datahandler.data_loader()
-
-    cm = args.clock_method
     
     if dataset_name == "fashionmnist":
         H, W = 28, 28 

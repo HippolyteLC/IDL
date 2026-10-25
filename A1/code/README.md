@@ -2,6 +2,7 @@
 ```bash
 module load LIACS/ItDL-2026
 ```
-2. 
-
-
+2. run a test on clock dataset
+```bash
+python3 A1/code/experiment.py --model clock_cnn --num-epochs 5 --dataset clock_75
+```

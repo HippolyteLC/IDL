@@ -155,3 +155,21 @@ def clock_accuracy(pred, label):
     label_in_mins = label[:,0]*60 + label[:,1]
     diff = torch.abs(pred_in_mins - label_in_mins)
     return torch.minimum(diff, 720 - diff) 
+
+def output_to_label(method):
+    def scalar_to_lab(output):
+        r = output * 720
+        h = torch.floor(r)
+        m = ((r - h) * 60).to(torch.int32)
+        return torch.stack(h, m)
+        
+    if method in (2,4,5,6):
+        return scalar_to_lab
+    elif method == 7:
+        def trig_to_lab(output):
+            y, x = output[:,0], output[:,1]
+            return torch.atan2(y,x)
+        return trig_to_lab
+    def return_same(output):
+        return output
+    return return_same

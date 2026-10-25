@@ -6,11 +6,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import SGD, Adam, AdamW
-from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead
+from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead, SmoothedSigmoid, SmoothedTanh
+from modules import L2NormActivation
 from data_loader import DataHandler
 
 from utils import load_init_method, load_optimizer_method, get_activation_method, get_regularization_term
-from utils import get_net_dims, get_loss_fc, clock_accuracy, get_label_converter_fn
+from utils import get_net_dims, get_loss_fc, clock_accuracy, get_label_converter_fn, output_to_label
 import numpy as np
 
 from datetime import datetime 
@@ -94,10 +95,12 @@ def train(data_loader, optimizer, net, loss_fn, regularization_term):
 
     return total_loss, total_correct
 
-def clock_train(data_loader, optimizer, net, loss_fn, cm):
+def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, output_converter, label_converter):
     """
     cm: is the clock method 
     """
+    if isinstance(loss_fn, tuple) and num_output_heads == 2:
+        loss_fn_1, loss_fn_2 = loss_fn
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -109,15 +112,29 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm):
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        outputs = net(X)
-        loss = loss_fn(outputs, y)
+        if num_output_heads == 1:
+            outputs = net(X)
+            labels = label_converter(y)
+            loss = loss_fn(outputs, labels)
+            loss.backward()
+        elif num_output_heads == 2:
+            output_1, output_2 = net(X)
+            labels = label_converter(y) 
+            if isinstance(labels, tuple):
+                lab_1, lab_2 = labels       
+                loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
+            loss = loss_1 + loss_2
 
         loss.backward()
         optimizer.step()
 
         total_loss += loss.detach() * X.size(0)
-        total_correct += (outputs.argmax(1) == y).sum()
-    
+        if cm is None or cm == 1:
+            total_correct += (outputs.argmax(1) == y).sum()
+        elif cm in (2,3,4,5,6):
+            outputs_correct_format = output_converter(outputs)
+
+        
     total_loss = total_loss.item()/size
     total_correct = total_correct.item()/size
 
@@ -196,9 +213,9 @@ def main():
     D = args.fc_width
     kernel_size = args.kernel_size
 
+    output_converter = output_to_label(method=cm)
+
     activation = get_activation_method(args.activation_method)
-    if cm == 7:
-        activation = nn.Tanh
 
     if args.model.lower() == "mlp":
         net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
@@ -206,7 +223,17 @@ def main():
         net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
     elif args.model.lower() == "clock_cnn":
         net = ClockCNNMultihead(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm, num_heads=num_output_heads)
-    
+        if cm == 2:
+            for oh in net.output_heads:
+                oh.append(SmoothedSigmoid())
+        elif cm in (4, 5, 6): 
+            for oh in net.output_heads:
+                if hasattr(oh[-1], 'out_features') and oh[-1].out_features == 1:
+                    oh.append(SmoothedSigmoid())
+        elif cm == 7:
+            for oh in net.output_heads:
+                oh.append(L2NormActivation())
+
     net.apply(partial(init_weights,
                     init_method=load_init_method(args.init_method),
                     ))
@@ -219,8 +246,6 @@ def main():
         loss_function = nn.CrossEntropyLoss()
     else:
         loss_function = get_loss_fc(cm)
-        if isinstance(loss_function, tuple) and num_output_heads == 2:
-            loss_1, loss_2 = loss_function
         
     for epoch in range(args.num_epochs):
         print(f'EPOCH {epoch + 1}:')

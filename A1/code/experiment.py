@@ -118,11 +118,10 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, outp
             loss = loss_fn(outputs, labels)
             loss.backward()
         elif num_output_heads == 2:
-            output_1, output_2 = net(X)
-            labels = label_converter(y) 
-            if isinstance(labels, tuple):
-                lab_1, lab_2 = labels       
-                loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
+            outputs = net(X)
+            output_1, output_2 = outputs
+            lab_1, lab_2 = label_converter(y)       
+            loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
             loss = loss_1 + loss_2
 
         loss.backward()
@@ -133,12 +132,13 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, outp
             total_correct += (outputs.argmax(1) == y).sum()
         elif cm in (2,3,4,5,6):
             outputs_correct_format = output_converter(outputs)
-
+            error = clock_accuracy(outputs_correct_format, y)
+            total_correct += error.sum()
         
     total_loss = total_loss.item()/size
     total_correct = total_correct.item()/size
 
-    print(f"Train Error: \n Accuracy: {(100*total_correct):>0.1f}%, Avg loss: {total_loss:>8f} \n")
+    print(f"Train Error: \n Avg mins off: {(total_correct):>0.1f}, Avg loss: {total_loss:>8f} \n")
 
     return total_loss, total_correct    
 

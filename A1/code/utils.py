@@ -139,10 +139,16 @@ def get_loss_fc(method: int):
         return nn.CrossEntropyLoss
     elif method == 2: 
         return CyclicRegressionLoss()
-    elif method in (3,4,5,6): 
+    elif method == 3: 
+        return nn.CrossEntropyLoss, nn.CrossEntropyLoss
+    elif method == 4:
+        return nn.CrossEntropyLoss, CyclicRegressionLoss()
+    elif method == 5:
         return CyclicRegressionLoss(), nn.CrossEntropyLoss
+    elif method == 6:
+        return CyclicRegressionLoss(), CyclicRegressionLoss()
     elif method == 7:
-        return nn.CosineSimilarity()
+        return nn.CosineSimilarity(), nn.CosineSimilarity()
     return None
 
 def clock_accuracy(pred, label):
@@ -162,14 +168,50 @@ def output_to_label(method):
         h = torch.floor(r)
         m = ((r - h) * 60).to(torch.int32)
         return torch.stack(h, m)
+
+    def scal_min_to_int(output):
+        m = (output * 60).to(torch.int32)
+        return m
+    def scal_h_to_int(output):
+        h = (output * 12).to(torch.int32)
+        return h
         
-    if method in (2,4,5,6):
+    if method == 2:
         return scalar_to_lab
+    elif method == 3:
+        def split_to_whole(output):
+            out_1, out_2 = output[:,0], output[:,1]
+            return torch.stack(out_1, out_2)
+        return split_to_whole
+    elif method == 4:
+        def cls_reg(output):
+            out_1, out_2 = output[:,0], output[:,1]
+            out = torch.stack(out_1, scal_min_to_int(out_2))
+            return out
+        return cls_reg
+    elif method == 5:
+        def reg_cls(output):
+            out_1, out_2 = output[:,0], output[:,1]
+            out = torch.stack(scal_h_to_int(out_1), out_2)
+            return out
+        return reg_cls
+    elif method == 6:
+        def reg_reg(output):
+            out_1, out_2 = output[:,0], output[:,1]
+            out = torch.stack(scal_h_to_int(out_1), scal_min_to_int(out_2))
+            return out
     elif method == 7:
-        def trig_to_lab(output):
+        def trig_to_angle(output):
             y, x = output[:,0], output[:,1]
             return torch.atan2(y,x)
+        def trig_to_lab(output):
+            out_1, out_2 = output[:,0], output[:,1]
+            angle_h, angle_m = trig_to_angle(out_1), trig_to_angle(out_2)
+            m = 60 * angle_m / (2 * torch.pi)
+            h = 12 * angle_h / (2 * torch.pi) - (m/60)
+            return torch.stack(h, m)
         return trig_to_lab
     def return_same(output):
         return output
     return return_same
+        

@@ -64,7 +64,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
    
-def train(data_loader, optimizer, net, loss_fn, regularization_term):
+def main_train(data_loader, optimizer, net, loss_fn, regularization_term):
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -142,7 +142,91 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, outp
 
     return total_loss, total_correct    
 
-def val(data_loader, net, loss_fn):
+def clock_val(data_loader, net, loss_fn, cm, num_output_heads, output_converter, label_converter):
+    """
+    cm: is the clock method 
+    """
+    if isinstance(loss_fn, tuple) and num_output_heads == 2:
+        loss_fn_1, loss_fn_2 = loss_fn
+    size = len(data_loader.dataset)
+    total_loss = torch.zeros((), device=device)
+    total_correct = torch.zeros((), device=device)
+    with torch.no_grad():
+        for _, (X, y) in enumerate(data_loader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            X, y = X.to(device), y.to(device)
+
+            # forward + backward + optimize
+            if num_output_heads == 1:
+                outputs = net(X)
+                labels = label_converter(y)
+                loss = loss_fn(outputs, labels)
+                loss.backward()
+            elif num_output_heads == 2:
+                outputs = net(X)
+                output_1, output_2 = outputs
+                lab_1, lab_2 = label_converter(y)       
+                loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
+                loss = loss_1 + loss_2
+
+            total_loss += loss.detach() * X.size(0)
+            if cm is None or cm == 1:
+                total_correct += (outputs.argmax(1) == y).sum()
+            elif cm in (2,3,4,5,6):
+                outputs_correct_format = output_converter(outputs)
+                error = clock_accuracy(outputs_correct_format, y)
+                total_correct += error.sum()
+        
+    total_loss = total_loss.item()/size
+    total_correct = total_correct.item()/size
+
+    print(f"Val Error: \n Avg mins off: {(total_correct):>0.1f}, Avg loss: {total_loss:>8f} \n")
+
+    return total_loss, total_correct    
+
+def clock_test(data_loader, net, loss_fn, cm, num_output_heads, output_converter, label_converter):
+    """
+    cm: is the clock method 
+    """
+    if isinstance(loss_fn, tuple) and num_output_heads == 2:
+        loss_fn_1, loss_fn_2 = loss_fn
+    size = len(data_loader.dataset)
+    total_loss = torch.zeros((), device=device)
+    total_correct = torch.zeros((), device=device)
+    with torch.no_grad():
+        for _, (X, y) in enumerate(data_loader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            X, y = X.to(device), y.to(device)
+
+            # forward + backward + optimize
+            if num_output_heads == 1:
+                outputs = net(X)
+                labels = label_converter(y)
+                loss = loss_fn(outputs, labels)
+                loss.backward()
+            elif num_output_heads == 2:
+                outputs = net(X)
+                output_1, output_2 = outputs
+                lab_1, lab_2 = label_converter(y)       
+                loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
+                loss = loss_1 + loss_2
+
+            total_loss += loss.detach() * X.size(0)
+            if cm is None or cm == 1:
+                total_correct += (outputs.argmax(1) == y).sum()
+            elif cm in (2,3,4,5,6):
+                outputs_correct_format = output_converter(outputs)
+                error = clock_accuracy(outputs_correct_format, y)
+                total_correct += error.sum()
+        
+    total_loss = total_loss.item()/size
+    total_correct = total_correct.item()/size
+
+    print(f"Test Error: \n Avg mins off: {(total_correct):>0.1f}, Avg loss: {total_loss:>8f} \n")
+
+    return total_loss, total_correct    
+
+def main_val(data_loader, net, loss_fn):
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -157,7 +241,7 @@ def val(data_loader, net, loss_fn):
     print(f"Validation Error: \n Accuracy: {(100*total_correct):>0.1f}%, Avg loss: {total_loss:>8f} \n")
     return total_loss, total_correct
 
-def test(data_loader, net, loss_fn):
+def main_test(data_loader, net, loss_fn):
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -247,15 +331,24 @@ def main():
     else:
         loss_function = get_loss_fc(cm)
         
+    label_converter = get_label_converter_fn(cm)
+        
     for epoch in range(args.num_epochs):
         print(f'EPOCH {epoch + 1}:')
 
-        # Make sure gradient tracking is on, and do a pass over the data
-        net.train(True)
-        train_loss, train_correct = train(train_loader, optimizer, net, loss_function, args.regularization_term)
-        net.eval()
-        vloss, vcorrect = val(val_loader, net, loss_function)
-
+        if cm:
+            # Make sure gradient tracking is on, and do a pass over the data
+            net.train(True)
+            train_loss, train_correct = clock_train(train_loader, optimizer, net, loss_function, \
+                                                    args.regularization_term, cm, num_output_heads,\
+                                                    output_converter, label_converter)
+            vloss, vcorrect = clock_val(val_loader, net, loss_function, cm, num_output_heads,\
+                                                    output_converter, label_converter)
+        else:
+            net.eval()
+            train_loss, train_correct = main_train(train_loader, optimizer, net, loss_function, args.regularization_term)
+            vloss, vcorrect = main_val(val_loader, net, loss_function)
+        
         record = {}
         record["train_loss"] = train_loss
         record["train_accuracy"] = train_correct

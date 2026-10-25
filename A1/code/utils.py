@@ -156,6 +156,7 @@ def clock_accuracy(pred, label):
     Common sense accuracy.
     input: pred, label. outputs the shortest distance from pred to label considering
     the full cycle of 720 minutes. 
+    I.e. error is in minutes that the prediction is off by. 
     """
     pred_in_mins = pred[:,0]*60 + pred[:,1]
     label_in_mins = label[:,0]*60 + label[:,1]

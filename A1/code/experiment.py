@@ -9,6 +9,8 @@ import torch.nn as nn
 from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead, SmoothedSigmoid
 from modules import L2NormActivation
 
+from loss import Criterion
+
 from activations import SmoothedSigmoid, SmoothedTanh, L2NormActivation
 
 from train import clock_train, clock_val, clock_test
@@ -17,7 +19,7 @@ from train import main_train, main_val, main_test
 from data_loader import DataHandler
 
 from utils import load_init_method, load_optimizer_method, get_activation_method
-from utils import get_net_dims, get_loss_fc, get_label_converter_fn, output_to_label
+from utils import get_net_dims, get_loss_fc, bel_converter_fn, output_to_label
 
 from datetime import datetime 
 
@@ -56,7 +58,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--init-method", type=str, default="kaiming_uniform")
     parser.add_argument("--activation-method", type=str, default="relu")
     parser.add_argument("--dropout", type=float, default=0.2)
-    parser.add_argument("--regularization-term", type=str, default="", help="Options include 'l2', 'l1', etc.")
     parser.add_argument("--weight-decay", type=float, default=0)
     parser.add_argument("--batch-norm", action="store_true")
 
@@ -136,6 +137,8 @@ def main():
             for oh in net.output_heads:
                 oh.append(L2NormActivation())
 
+    criterion = Criterion(net, num_output_heads, cm)
+
     net.apply(partial(init_weights,
                     init_method=load_init_method(args.init_method),
                     ))
@@ -143,14 +146,7 @@ def main():
 
     optimizer_method = load_optimizer_method(args.optimizer)
     optimizer = optimizer_method(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-
-    if not cm:
-        loss_function = nn.CrossEntropyLoss()
-    else:
-        loss_function = get_loss_fc(cm)
-        
-    label_converter = get_label_converter_fn(method=cm, out_feat=out_feat)
-        
+                
     for epoch in range(args.num_epochs):
         print(f'EPOCH {epoch + 1}:')
 

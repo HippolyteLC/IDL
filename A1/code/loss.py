@@ -3,6 +3,12 @@ import torch.nn as nn
 
 from converters import get_label_converter_fn, output_to_label
 
+class CyclicRegressionLoss(nn.Module):
+    def forward(self, pred, labels):
+        """ 
+        Assumes scaled output between 0 and 1.
+        """
+        return 1 - torch.cos((pred-labels)*2*torch.pi)
 
 def get_loss_fc(method: int):
     return {
@@ -14,7 +20,6 @@ def get_loss_fc(method: int):
         6: (CyclicRegressionLoss(), CyclicRegressionLoss()),
         7: (nn.CosineSimilarity(), nn.CosineSimilarity())
     }.get(method, tuple(nn.CrossEntropyLoss()))
-
 
 def clock_accuracy(pred, label):
     """
@@ -65,10 +70,3 @@ class Criterion:
             error = (outputs.argmax(1) == y).sum()
         return loss, error
     
-
-class CyclicRegressionLoss(nn.Module):
-    def forward(self, pred, labels):
-        """ 
-        Assumes scaled output between 0 and 1.
-        """
-        return 1 - torch.cos((pred-labels)*2*torch.pi)

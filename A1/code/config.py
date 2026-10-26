@@ -2,6 +2,8 @@ from dataclasses import dataclass, asdict, field
 
 from pathlib import Path
 
+import argparse
+
 import json
 
 from typing import Union, List, Optional
@@ -11,17 +13,15 @@ from utils import get_net_dims
 
 @dataclass
 class DataConfig:
-    dataset: str = "fashionmnist"
+    dataset_name: str = "fashionmnist"
     batch_size: int = 1024
-    seed: int = 111
-    split_seed: int = 2026
+    seed: int = 2026
     val_split: float = 0.1
 
 
 @dataclass
 class ModelConfig:
     model: str = "cnn"
-    num_heads: int = 2
     clock_method: Optional[int] = 1
     num_clock_classes: int = 720
     n_hidden_fc_layers: int = 2
@@ -53,7 +53,8 @@ class ModelConfig:
 
 @dataclass
 class TrainingConfig:
-    num_epochs: int = 50
+    seed: int = 111
+    num_epochs: int = 20
     optimizer: str = "adam"
     learning_rate: float = 1e-3
     weight_decay: float = 0.0
@@ -68,11 +69,10 @@ class ExperimentConfig:
     training: TrainingConfig = field(default_factory=TrainingConfig)
 
     def __post_init__(self):
-        """Ensure derived network parameters are calculated upon configuration build."""
         self.model.compute_dimensions(self.data.dataset)
 
     @classmethod
-    from_argparse(cls, args: argparse.Namespace):
+    def from_argparse(cls, args: argparse.Namespace):
         """
         Creates an ExperimentConfig directly from an argparse Namespace.
         Maps matching keys dynamically and calculates derived dimensions automatically.

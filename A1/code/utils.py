@@ -3,10 +3,6 @@ from torch.optim import SGD, Adam, AdamW
 from torch.nn import ReLU, GELU, LeakyReLU
 import torch
 
-from modules import DynamicCNN, DynamicMLP, ClockCNNMultihead
-
-from activations import SmoothedTanh, SmoothedSigmoid, L2NormActivation
-
 def load_init_method(init_method):
     method = init_method.lower()
     if method == "xavier_normal":
@@ -28,6 +24,11 @@ def load_optimizer_method(optim_method):
     elif method == "adamw":
         return AdamW
     return None
+
+def load_optim(net, training_config):
+    optimizer_method = load_optimizer_method(training_config.optimizer)
+    optimizer = optimizer_method(net.parameters(), lr=training_config.learning_rate, weight_decay=training_config.weight_decay)
+    return optimizer    
 
 def get_activation_method(act_method):
     method = act_method.lower()
@@ -73,25 +74,3 @@ def get_net_dims(clock_method, dataset_name, num_clock_classes):
         out_feat, num_output_heads = 10, 1
 
     return H, W, out_feat, C_i, num_output_heads
-
-
-def get_net(model_config):
-    model = model_config.model
-    if model == "mlp":
-        net = DynamicMLP(model_config)
-    elif model == "cnn":
-        net = DynamicCNN(model_config)
-    elif model == "clock_cnn":
-        net = ClockCNNMultihead(model_config)
-        cm = model_config.clock_method
-        if cm == 2:
-            for oh in net.output_heads:
-                oh.append(SmoothedSigmoid())
-        elif cm in (4, 5, 6): 
-            for oh in net.output_heads:
-                if hasattr(oh[-1], 'out_features') and oh[-1].out_features == 1:
-                    oh.append(SmoothedSigmoid())
-        elif cm == 7:
-            for oh in net.output_heads:
-                oh.append(L2NormActivation())
-    return net

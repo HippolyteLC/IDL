@@ -1,9 +1,11 @@
 import torch
 
+
 def init_loss_and_error(device):
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
     return total_loss, total_correct
+
 
 def clock_train(data_loader, optimizer, criterion, device):
     """
@@ -33,6 +35,7 @@ def clock_train(data_loader, optimizer, criterion, device):
 
     return total_loss, total_correct    
 
+
 def clock_val(data_loader, criterion, device):
     total_loss, total_correct = init_loss_and_error(device)  
 
@@ -53,6 +56,7 @@ def clock_val(data_loader, criterion, device):
     print(f"Val Error: \n Avg mins off: {(total_correct):>0.1f}, Avg loss: {total_loss:>8f} \n")
 
     return total_loss, total_correct    
+
 
 def clock_test(data_loader, criterion, device):
     """
@@ -78,6 +82,7 @@ def clock_test(data_loader, criterion, device):
     print(f"Test Error: \n Avg mins off: {(total_correct):>0.1f}, Avg loss: {total_loss:>8f} \n")
 
     return total_loss, total_correct    
+
 
 def main_train(data_loader, optimizer, criterion, device):
     total_loss, total_correct = init_loss_and_error(device)  
@@ -105,6 +110,7 @@ def main_train(data_loader, optimizer, criterion, device):
 
     return total_loss, total_correct
 
+
 def main_val(data_loader, criterion, device):
     total_loss, total_correct = init_loss_and_error(device)  
 
@@ -121,6 +127,7 @@ def main_val(data_loader, criterion, device):
     print(f"Validation Error: \n Accuracy: {(100*total_correct):>0.1f}%, Avg loss: {total_loss:>8f} \n")
     
     return total_loss, total_correct
+
 
 def main_test(data_loader, criterion, device):
     total_loss, total_correct = init_loss_and_error(device)  

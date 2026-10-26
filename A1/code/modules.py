@@ -4,11 +4,15 @@ import numpy as np
 
 import torch
 
-from utils import get_activation_method
+from utils import get_activation_method, load_init_method
 
 from modules import DynamicCNN, DynamicMLP, ClockCNNMultihead
 
 from activations import SmoothedTanh, SmoothedSigmoid, L2NormActivation
+
+from functools import partial
+
+
 
 
 def init_weights(m, init_method, verbose=False):
@@ -200,9 +204,9 @@ class ModelLoader:
         model = model_config.model
 
         if model == "mlp":
-            return DynamicMLP(model_config)
+            net = DynamicMLP(model_config)
         elif model == "cnn":
-            return DynamicCNN(model_config)
+            net = DynamicCNN(model_config)
         elif model == "clock_cnn":
             net = ClockCNNMultihead(model_config)
             cm = model_config.clock_method
@@ -214,10 +218,11 @@ class ModelLoader:
                     oh.append(SmoothedSigmoid())
                 elif cm == 7:
                     oh.append(L2NormActivation())
+        
+        net.apply(partial(init_weights,
+                init_method=load_init_method(model_config.init_method),
+                ))
 
-            return net
+        return net
 
-        raise ValueError(f"Unknown model: {model}")
-
-
-
+        # raise ValueError(f"Unknown model: {model}")

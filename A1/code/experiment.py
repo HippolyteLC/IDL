@@ -6,26 +6,20 @@ import torch
 
 import torch.nn as nn
 
-from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead, SmoothedSigmoid
-from modules import L2NormActivation
+from modules import ModelLoader
 
 from loss import Criterion
-
-from activations import SmoothedSigmoid, SmoothedTanh, L2NormActivation
 
 from train import clock_train, clock_val, clock_test
 from train import main_train, main_val, main_test
 
 from data_loader import DataHandler
 
-from utils import load_init_method, load_optimizer_method, get_activation_method
-from utils import get_net_dims, get_loss_fc, bel_converter_fn, output_to_label
+from utils import load_optim
 
 from config import ExperimentConfig
 
 from datetime import datetime 
-
-from functools import partial
 
 import json
 
@@ -88,72 +82,33 @@ def main():
     train_logs_path = LOGS_DIR / f"{timestamp}_training_logs.jsonl"
     hp_logs_path = LOGS_DIR / f"{timestamp}_training_hyperparameters.json"
 
-    torch.manual_seed(args.seed)
-    generator = torch.Generator()
-    generator.manual_seed(args.seed)
-
-    dataset_name = args.dataset.lower()
-    datahandler = DataHandler(dataset_name=dataset_name, device=device, batch_size=args.batch_size, seed=args.split_seed)
+    datahandler = DataHandler(config.data_config, device)
     train_loader, val_loader, test_loader = datahandler.data_loader()
 
-    H, W, out_feat, C_i, num_output_heads = get_net_dims(cm, dataset_name, args.num_clock_classes)
+    torch.manual_seed(config.training.seed)
 
-    K = args.n_hidden_fc_layers
-    D = args.fc_width
-    kernel_size = args.kernel_size
+    net = ModelLoader().get_net(config.model)
 
-    output_converter = output_to_label(method=cm)
+    criterion = Criterion(net, config.model)
 
-    activation = get_activation_method(args.activation_method)
-
-    if args.model.lower() == "mlp":
-        net = DynamicMLP(H=H, W=W, C_i=C_i, out_feat=out_feat, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
-    elif args.model.lower() == "cnn":
-        net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
-    elif args.model.lower() == "clock_cnn":
-        # H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False, num_heads=2
-        net = ClockCNNMultihead(H=H, W=W, C_i=C_i, out_feat=out_feat, \
-                                kernel_size=kernel_size, K=K, D=D, dropout=args.dropout, activation=activation, \
-                                    bias=args.bias, batch_norm=args.batch_norm, num_heads=num_output_heads)
-        if cm == 2:
-            for oh in net.output_heads:
-                oh.append(SmoothedSigmoid())
-        elif cm in (4, 5, 6): 
-            for oh in net.output_heads:
-                if hasattr(oh[-1], 'out_features') and oh[-1].out_features == 1:
-                    oh.append(SmoothedSigmoid())
-        elif cm == 7:
-            for oh in net.output_heads:
-                oh.append(L2NormActivation())
-
-    criterion = Criterion(net, num_output_heads, cm)
-
-    net.apply(partial(init_weights,
-                    init_method=load_init_method(args.init_method),
-                    ))
     net.to(device)
 
-    optimizer_method = load_optimizer_method(args.optimizer)
-    optimizer = optimizer_method(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-                
+    optimizer = load_optim(net, config.training) 
+
     for epoch in range(args.num_epochs):
         print(f'EPOCH {epoch + 1}:')
 
-        if cm:
+        if config.model.clock_method:
             # Make sure gradient tracking is on, and do a pass over the data
             net.train(True)
-            train_loss, train_correct = clock_train(train_loader, optimizer, net, loss_function, \
-                                                     num_output_heads,\
-                                                    output_converter, label_converter, device=device)
+            train_loss, train_correct = clock_train(train_loader, optimizer, criterion, device=device)
             net.eval()
-            vloss, vcorrect = clock_val(val_loader, net, loss_function, num_output_heads,\
-                                                    output_converter, label_converter, device=device)
+            vloss, vcorrect = clock_val(val_loader, criterion, device=device)
         else:
             net.train(True)
-            train_loss, train_correct = main_train(train_loader, optimizer, net, \
-                                                   loss_function, regularization_term=args.regularization_term, device=device)
+            train_loss, train_correct = main_train(train_loader, optimizer, criterion, device=device)
             net.eval()
-            vloss, vcorrect = main_val(val_loader, net, loss_function, device=device)
+            vloss, vcorrect = main_val(val_loader, criterion, device=device)
         
         record = {}
         record["train_loss"] = train_loss
@@ -164,16 +119,15 @@ def main():
         with open(train_logs_path, 'a') as f:
             f.write(json.dumps(record) + "\n")
 
-    hp_logs = vars(args).copy()
+    hp_logs = config.to_dict()
     hp_logs["last_train_accuracy"] = record["train_accuracy"]
     hp_logs["last_val_accuracy"] = record["validation_accuracy"]
-    hp_logs["out_features"] = list(out_feat) if not isinstance(out_feat, int) else out_feat
 
     with open(hp_logs_path, 'w') as f:
         json.dump(hp_logs, f, indent=4)
 
-    if args.save:
-        model_path = CHECKPOINTS_DIR / f"model_{args.model}_{args.dataset}_{timestamp}.pth"
+    if config.training.save:
+        model_path = CHECKPOINTS_DIR / f"model_{config.model.model}_{config.data.dataset_name}_{timestamp}.pth"
         
         torch.save(net.state_dict(), model_path)
         print(f"Saved PyTorch Model State to {model_path}")

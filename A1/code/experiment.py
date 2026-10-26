@@ -95,7 +95,8 @@ def main_train(data_loader, optimizer, net, loss_fn, regularization_term):
 
     return total_loss, total_correct
 
-def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, output_converter, label_converter):
+def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, \
+                output_converter, label_converter):
     """
     cm: is the clock method 
     """
@@ -113,8 +114,11 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, outp
 
         # forward + backward + optimize
         if num_output_heads == 1:
-            outputs = net(X)
+            outputs = net(X).squeeze(0)
             labels = label_converter(y)
+            
+            assert outputs.shape[0] == labels.shape[0], f"output shape {outputs.shape} is not same as label shape {labels.shape}"
+            print(outputs.shape, labels.shape)
             loss = loss_fn(outputs, labels)
             loss.backward()
         elif num_output_heads == 2:
@@ -158,8 +162,9 @@ def clock_val(data_loader, net, loss_fn, cm, num_output_heads, output_converter,
 
             # forward + backward + optimize
             if num_output_heads == 1:
-                outputs = net(X)
+                outputs = net(X).squeeze(0)
                 labels = label_converter(y)
+                assert outputs.shape[0] == labels.shape[0], f"output shape {outputs.shape} is not same as label shape {labels.shape}"
                 loss = loss_fn(outputs, labels)
                 loss.backward()
             elif num_output_heads == 2:
@@ -337,7 +342,7 @@ def main():
     else:
         loss_function = get_loss_fc(cm)
         
-    label_converter = get_label_converter_fn(cm)
+    label_converter = get_label_converter_fn(method=cm, out_feat=out_feat)
         
     for epoch in range(args.num_epochs):
         print(f'EPOCH {epoch + 1}:')
@@ -346,13 +351,13 @@ def main():
             # Make sure gradient tracking is on, and do a pass over the data
             net.train(True)
             train_loss, train_correct = clock_train(train_loader, optimizer, net, loss_function, \
-                                                    args.regularization_term, cm, num_output_heads,\
+                                                    cm, num_output_heads,\
                                                     output_converter, label_converter)
             vloss, vcorrect = clock_val(val_loader, net, loss_function, cm, num_output_heads,\
                                                     output_converter, label_converter)
         else:
             net.eval()
-            train_loss, train_correct = main_train(train_loader, optimizer, net, loss_function, args.regularization_term)
+            train_loss, train_correct = main_train(train_loader, optimizer, net, loss_function)
             vloss, vcorrect = main_val(val_loader, net, loss_function)
         
         record = {}

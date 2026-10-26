@@ -16,8 +16,16 @@ def output_to_label(method):
             x = x.unsqueeze(-1)
         return torch.clamp(torch.round(x.squeeze(-1) * 12), 0, 11)
 
-    def cls_total(out):
-        print(out.dim())
+    def cls_total(out, verbose=False):
+        # TODO: fix RuntimeError: CUDA error: device-side assert triggered
+        if verbose:
+            print("out.shape:", out.shape)
+            print("out.dtype:", out.dtype)
+            print("out.device:", out.device)
+            print("out.min():", out.min().item())
+            print("out.max():", out.max().item())
+            print("out.isnan():", out.isnan().any().item())
+            print("out.isinf():", out.isinf().any().item())
         total = out.argmax(dim=1) * (720 // out.shape[1])
         return to_hm(total // 60, total % 60)
 
@@ -90,7 +98,7 @@ def get_label_converter_fn(method: int, out_feat):
         assert mins_per_bin % 1 == 0, "provide valid number of output features"
 
         return (
-            torch.round(to_minutes(label) / mins_per_bin) * mins_per_bin
+            (to_minutes(label) // mins_per_bin) * mins_per_bin
         ).to(torch.int64)
 
     def convert_to_two_decimals(label):

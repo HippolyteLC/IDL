@@ -64,12 +64,26 @@ class Criterion:
         self.label_converter = None    
 
     def forward(self, X, y):
+        # TODO: fix for method 3 (cls, cls)
         if self.label_converter is None:
             self.label_converter = get_label_converter_fn(self.method, y.shape[-1])
 
         outputs = self.net(X) # tuple of outputs if multiple heads
         labels = self.label_converter(y)
         loss = torch.tensor(0.0, device=X.device)
+
+        print("outputs.shape:", outputs.shape)
+        print("labels.shape:", labels.shape)
+        print("labels.dtype:", labels.dtype)
+
+        print("labels min:", labels.min().item())
+        print("labels max:", labels.max().item())
+
+        num_classes = outputs.shape[1]
+        print("num_classes:", num_classes)
+
+        invalid = (labels < 0) | (labels >= num_classes)
+        print("Invalid labels:", labels[invalid])
 
         if self.num_output_heads == 1:
             loss = self.loss_funcs[0](outputs, labels)

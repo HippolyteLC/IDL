@@ -9,6 +9,8 @@ import torch.nn as nn
 from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead, SmoothedSigmoid
 from modules import L2NormActivation
 
+from activations import SmoothedSigmoid, SmoothedTanh, L2NormActivation
+
 from train import clock_train, clock_val, clock_test
 from train import main_train, main_val, main_test
 

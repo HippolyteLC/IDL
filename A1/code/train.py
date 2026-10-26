@@ -2,7 +2,7 @@ import torch
 
 from utils import clock_accuracy, get_regularization_term
 
-def clock_loss(net, num_output_heads, label_converter, loss_fn):
+def clock_loss(X, y, net, num_output_heads, label_converter, loss_fn):
     if isinstance(loss_fn, tuple) and num_output_heads == 2:
         loss_fn_1, loss_fn_2 = loss_fn
     if num_output_heads == 1:
@@ -35,7 +35,7 @@ def clock_train(data_loader, optimizer, net, loss_fn, num_output_heads, \
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        outputs, loss = clock_loss(net, num_output_heads, label_converter, loss_fn)
+        outputs, loss = clock_loss(X, y, net, num_output_heads, label_converter, loss_fn)
 
         loss.backward()
         optimizer.step()
@@ -62,7 +62,7 @@ def clock_val(data_loader, net, loss_fn, num_output_heads, output_converter, lab
             X, y = X.to(device), y.to(device)
 
             # forward + backward + optimize
-            outputs, loss = clock_loss(net, num_output_heads, label_converter, loss_fn)
+            outputs, loss = clock_loss(X, y, net, num_output_heads, label_converter, loss_fn)
 
             total_loss += loss.detach() * X.size(0)
 
@@ -90,7 +90,7 @@ def clock_test(data_loader, net, loss_fn, num_output_heads, output_converter, la
             X, y = X.to(device), y.to(device)
 
             # forward + backward + optimize
-            outputs, loss = clock_loss(net, num_output_heads, label_converter, loss_fn)
+            outputs, loss = clock_loss(X, y, net, num_output_heads, label_converter, loss_fn)
 
             total_loss += loss.detach() * X.size(0)
 

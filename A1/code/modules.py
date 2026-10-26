@@ -4,6 +4,20 @@ import numpy as np
 
 import torch
 
+from activations import SmoothedSigmoid, SmoothedTanh, L2NormActivation
+
+def clock_accuracy(pred, label):
+    """
+    Common sense accuracy.
+    input: pred, label. outputs the shortest distance from pred to label considering
+    the full cycle of 720 minutes. 
+    I.e. error is in minutes that the prediction is off by. 
+    """
+    pred_in_mins = pred[:,0]*60 + pred[:,1]
+    label_in_mins = label[:,0]*60 + label[:,1]
+    diff = torch.abs(pred_in_mins - label_in_mins)
+    return torch.minimum(diff, 720 - diff) 
+
 def init_weights(m, init_method, verbose=False):
     if verbose:
         print(m)
@@ -159,36 +173,8 @@ class ClockCNNMultihead(ClockCNN):
         r = tuple(f(self.shared_backbone(x)) for f in self.output_heads)
         out = r[0] if len(r) == 1 else r
         return out
-        
-class CyclicRegressionLoss(nn.Module):
-    def forward(self, pred, labels):
-        """ 
-        Assumes scaled output between 0 and 1.
-        """
-        return 1 - torch.cos((pred-labels)*2*torch.pi)
+    
 
-
-class SmoothedTanh(nn.Module):
-    def __init__(self, k=1):
-        super().__init__()
-        self.k = k
-    def forward(self, x):
-        return torch.tanh(self.k*x)
-    def __str__(self):
-        return "SmoothedTanh"
-
-class SmoothedSigmoid(nn.Module):
-    def __init__(self, k=0.3):
-        super().__init__()
-        self.k = k
-    def forward(self, x):
-        return torch.sigmoid(self.k*x)
-    def __str__(self):
-        return "SmoothedSigmoid"
-
-class L2NormActivation(nn.Module):
-    def forward(self,x):
-        return nn.functional.normalize(x, dim=-1)
 
 
 

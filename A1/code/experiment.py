@@ -6,7 +6,7 @@ import torch
 
 import torch.nn as nn
 
-from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead, SmoothedSigmoid, SmoothedTanh
+from modules import init_weights, DynamicMLP, DynamicCNN, ClockCNNMultihead, SmoothedSigmoid
 from modules import L2NormActivation
 
 from train import clock_train, clock_val, clock_test
@@ -14,7 +14,7 @@ from train import main_train, main_val, main_test
 
 from data_loader import DataHandler
 
-from utils import load_init_method, load_optimizer_method, get_activation_method, get_regularization_term
+from utils import load_init_method, load_optimizer_method, get_activation_method
 from utils import get_net_dims, get_loss_fc, get_label_converter_fn, output_to_label
 
 from datetime import datetime 
@@ -156,15 +156,15 @@ def main():
             # Make sure gradient tracking is on, and do a pass over the data
             net.train(True)
             train_loss, train_correct = clock_train(train_loader, optimizer, net, loss_function, \
-                                                    cm, num_output_heads,\
+                                                     num_output_heads,\
                                                     output_converter, label_converter, device=device)
             net.eval()
-            vloss, vcorrect = clock_val(val_loader, net, loss_function, cm, num_output_heads,\
+            vloss, vcorrect = clock_val(val_loader, net, loss_function, num_output_heads,\
                                                     output_converter, label_converter, device=device)
         else:
             net.train(True)
             train_loss, train_correct = main_train(train_loader, optimizer, net, \
-                                                   loss_function, regularization_term=args.regularization.term, device=device)
+                                                   loss_function, regularization_term=args.regularization_term, device=device)
             net.eval()
             vloss, vcorrect = main_val(val_loader, net, loss_function, device=device)
         

@@ -2,16 +2,28 @@ import torch
 
 from utils import clock_accuracy, get_regularization_term
 
-def clock
+def clock_loss(net, num_output_heads, label_converter, loss_fn):
+    if isinstance(loss_fn, tuple) and num_output_heads == 2:
+        loss_fn_1, loss_fn_2 = loss_fn
+    if num_output_heads == 1:
+        outputs = net(X)
+        labels = label_converter(y)
+        assert outputs.shape[0] == labels.shape[0], f"output shape {outputs.shape} is not same as label shape {labels.shape}"
+        loss = loss_fn(outputs, labels)
+    elif num_output_heads == 2:
+        outputs = net(X)
+        output_1, output_2 = outputs[:,0], outputs[:,1]
+        lab_1, lab_2 = label_converter(y)    
+        loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
+        loss = loss_1 + loss_2
+    return outputs, loss
 
 
-def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, \
+def clock_train(data_loader, optimizer, net, loss_fn, num_output_heads, \
                 output_converter, label_converter, device):
     """
     cm: is the clock method 
     """
-    if isinstance(loss_fn, tuple) and num_output_heads == 2:
-        loss_fn_1, loss_fn_2 = loss_fn
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -23,18 +35,7 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, \
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        if num_output_heads == 1:
-            outputs = net(X)
-            labels = label_converter(y)
-            
-            assert outputs.shape[0] == labels.shape[0], f"output shape {outputs.shape} is not same as label shape {labels.shape}"
-            loss = loss_fn(outputs, labels)
-        elif num_output_heads == 2:
-            outputs = net(X)
-            output_1, output_2 = outputs[:,0], outputs[:,1]
-            lab_1, lab_2 = label_converter(y)      
-            loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
-            loss = loss_1 + loss_2
+        outputs, loss = clock_loss(net, num_output_heads, label_converter, loss_fn)
 
         loss.backward()
         optimizer.step()
@@ -51,12 +52,7 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, \
 
     return total_loss, total_correct    
 
-def clock_val(data_loader, net, loss_fn, cm, num_output_heads, output_converter, label_converter, device):
-    """
-    cm: is the clock method 
-    """
-    if isinstance(loss_fn, tuple) and num_output_heads == 2:
-        loss_fn_1, loss_fn_2 = loss_fn
+def clock_val(data_loader, net, loss_fn, num_output_heads, output_converter, label_converter, device):
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -66,17 +62,7 @@ def clock_val(data_loader, net, loss_fn, cm, num_output_heads, output_converter,
             X, y = X.to(device), y.to(device)
 
             # forward + backward + optimize
-            if num_output_heads == 1:
-                outputs = net(X)
-                labels = label_converter(y)
-                assert outputs.shape[0] == labels.shape[0], f"output shape {outputs.shape} is not same as label shape {labels.shape}"
-                loss = loss_fn(outputs, labels)
-            elif num_output_heads == 2:
-                outputs = net(X)
-                output_1, output_2 = outputs[:,0], outputs[:,1]
-                lab_1, lab_2 = label_converter(y)    
-                loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
-                loss = loss_1 + loss_2
+            outputs, loss = clock_loss(net, num_output_heads, label_converter, loss_fn)
 
             total_loss += loss.detach() * X.size(0)
 
@@ -91,12 +77,10 @@ def clock_val(data_loader, net, loss_fn, cm, num_output_heads, output_converter,
 
     return total_loss, total_correct    
 
-def clock_test(data_loader, net, loss_fn, cm, num_output_heads, output_converter, label_converter, device):
+def clock_test(data_loader, net, loss_fn, num_output_heads, output_converter, label_converter, device):
     """
     cm: is the clock method 
     """
-    if isinstance(loss_fn, tuple) and num_output_heads == 2:
-        loss_fn_1, loss_fn_2 = loss_fn
     size = len(data_loader.dataset)
     total_loss = torch.zeros((), device=device)
     total_correct = torch.zeros((), device=device)
@@ -106,16 +90,7 @@ def clock_test(data_loader, net, loss_fn, cm, num_output_heads, output_converter
             X, y = X.to(device), y.to(device)
 
             # forward + backward + optimize
-            if num_output_heads == 1:
-                outputs = net(X)
-                labels = label_converter(y)
-                loss = loss_fn(outputs, labels)
-            elif num_output_heads == 2:
-                outputs = net(X)
-                output_1, output_2 = outputs[:,0], outputs[:,1]
-                lab_1, lab_2 = label_converter(y)      
-                loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
-                loss = loss_1 + loss_2
+            outputs, loss = clock_loss(net, num_output_heads, label_converter, loss_fn)
 
             total_loss += loss.detach() * X.size(0)
 

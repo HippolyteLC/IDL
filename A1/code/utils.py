@@ -83,7 +83,7 @@ def get_loss_fc(method: int):
     elif method == 4:
         return nn.CrossEntropyLoss(), CyclicRegressionLoss()
     elif method == 5:
-        return CyclicRegressionLoss(), nn.CrossEntropyLoss
+        return CyclicRegressionLoss(), nn.CrossEntropyLoss()
     elif method == 6:
         return CyclicRegressionLoss(), CyclicRegressionLoss()
     elif method == 7:

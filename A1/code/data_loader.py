@@ -20,7 +20,7 @@ class ClockDataset(Dataset):
     def __init__(self, data_dir, dataset_name="clock_75", target_transform=None, seed=111):
         if dataset_name == "clock_75":
             sub_dir = "clock_data_75" 
-        elif dataset_name == "150":
+        elif dataset_name == "clock_150":
             sub_dir = "clock_data_150" 
         else:
             raise NameError("choose a valid dataset name")
@@ -65,7 +65,7 @@ class DataHandler:
         elif self.dataset_name.lower() == "cifar10":
             self.data_class = datasets.CIFAR10
         elif self.dataset_name.lower() in ("clock_75", "clock_150"):
-            self.data_class = ClockDataset(data_dir=data_dir, dataset_name=dataset_name, target_transform=target_transform, seed=seed)
+            self.clock_ds = ClockDataset(data_dir=data_dir, dataset_name=dataset_name, target_transform=target_transform, seed=seed)
 
         self.transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
@@ -82,7 +82,8 @@ class DataHandler:
         return torch.cat(xs), torch.cat(ys)
 
     def make_loader(self, X, y, shuffle=True):
-        ds = TensorDataset(X.to(self.device), y.to(self.device))
+        # ds = TensorDataset(X.to(self.device), y.to(self.device))
+        ds = TensorDataset(X, y)
         if shuffle:
             generator = torch.Generator().manual_seed(self.seed)
             base = RandomSampler(ds, generator=generator)
@@ -98,16 +99,16 @@ class DataHandler:
         generator = torch.Generator().manual_seed(self.seed)
 
         if self.dataset_name in ("clock_75", "clock_150"):
-            train, val, test = self.data_class.splits
-            imgs, labels = self.data_class.imgs, self.data_class.img_labels
+            train, val, test = self.clock_ds.splits
+            imgs, labels = self.clock_ds.imgs, self.clock_ds.img_labels
             X_train, y_train = imgs[train.indices], labels[train.indices] 
             X_val, y_val = imgs[val.indices], labels[val.indices] 
             X_test, y_test = imgs[test.indices], labels[test.indices] 
 
-            if self.data_class.target_transform is not None:
-                y_train = self.data_class.target_transform(y_train) 
-                y_val = self.data_class.target_transform(y_val)
-                y_test = self.data_class.target_transform(y_test)
+            if self.clock_ds.target_transform is not None:
+                y_train = self.clock_ds.target_transform(y_train) 
+                y_val = self.clock_ds.target_transform(y_val)
+                y_test = self.clock_ds.target_transform(y_test)
         else:
             train_val = self.data_class(root=str(self.data_dir), train=True, download=True, transform=self.transform)
 

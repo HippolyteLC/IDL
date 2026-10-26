@@ -156,8 +156,11 @@ class ClockCNNMultihead(ClockCNN):
         self.output_heads = nn.ModuleList(output_heads)
 
     def forward(self, x):
-        return torch.stack(list(f(self.shared_backbone(x)) for f in self.output_heads))
-
+        r = torch.stack(list(f(self.shared_backbone(x)) for f in self.output_heads))
+        if len(r) == 1:
+            return r.squeeze(0)
+        else:
+            return r
 class CyclicRegressionLoss(nn.Module):
     def forward(self, pred, labels):
         """ 
@@ -168,6 +171,7 @@ class CyclicRegressionLoss(nn.Module):
 
 class SmoothedTanh(nn.Module):
     def __init__(self, k=1):
+        super().__init()
         self.k = k
     def forward(self, x):
         return torch.tanh(self.k*x)
@@ -176,6 +180,7 @@ class SmoothedTanh(nn.Module):
 
 class SmoothedSigmoid(nn.Module):
     def __init__(self, k=0.3):
+        super().__init()
         self.k = k
     def forward(self, x):
         return torch.sigmoid(self.k*x)

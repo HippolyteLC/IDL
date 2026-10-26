@@ -71,6 +71,7 @@ def get_net_dims(method, dataset_name, num_clock_classes):
         C_i = 1
 
         return H, W, out_feat, C_i, num_output_heads
+    return None
 
 def get_label_converter_fn(method: int, out_feat):
     """
@@ -80,6 +81,8 @@ def get_label_converter_fn(method: int, out_feat):
         convert labels to scalars. Given that we have 60 mins max in the labels,
         we simply need 10^n values, given by n decimal places. in this case n=2. 
     """
+    def same_label(label):
+        return label
     def convert_single_to_scalar(label):
         return torch.where(label > 11, torch.round(label / 60.0 * 100) / 100, torch.round(label / 12.0 * 100) / 100)
     if method == 1:
@@ -90,32 +93,30 @@ def get_label_converter_fn(method: int, out_feat):
             assert mins_per_bin%1 == 0, "provide valid number of output features"
             h, m = label[:,0], label[:,1] 
             label_in_mins = h*60 + m 
-            return torch.round(label_in_mins/mins_per_bin) * mins_per_bin 
+            return (torch.round(label_in_mins/mins_per_bin) * mins_per_bin).to(torch.int64) 
         return convert_to_bins
     elif method == 2: 
         def convert_to_two_decimals(label):
             h, m = label[:,0], label[:,1] 
             label_in_mins = h*60 + m 
-            return torch.round((label_in_mins/720)*100) / 100
+            return torch.tensor(torch.round((label_in_mins/720)*100) / 100)
         return convert_to_two_decimals
     elif method == 3:
-        def split_label(label):
-            return label[:,0], label[:,1]
-        return split_label
+        return same_label
     elif method == 4: 
         def cls_reg(label):
             h, m = label[:,0], label[:,1] 
-            return h, convert_single_to_scalar(m)
+            return torch.tensor(h).to(torch.int64) , torch.tensor(convert_single_to_scalar(m))
         return cls_reg
     elif method == 5: 
         def reg_cls(label):
             h, m = label[:,0], label[:,1] 
-            return convert_single_to_scalar(h), m
+            return torch.tensor(convert_single_to_scalar(h)).to(torch.int64), torch.tensor(m).to(torch.int64) 
         return reg_cls
     elif method == 6:
         def reg_reg(label):
             h, m = label[:,0], label[:,1] 
-            return convert_single_to_scalar(h), convert_single_to_scalar(m)
+            return torch.tensor(convert_single_to_scalar(h)), torch.tensor(convert_single_to_scalar(m))
         return reg_reg
     elif method == 7:
         def trig(label):
@@ -132,26 +133,24 @@ def get_label_converter_fn(method: int, out_feat):
                 torch.cos(angle_min)
                 ], dim=1)
         return trig
-    def same_label(label):
-        return label
     return same_label
 
 def get_loss_fc(method: int):
     if method == 1:
-        return nn.CrossEntropyLoss
+        return nn.CrossEntropyLoss()
     elif method == 2: 
         return CyclicRegressionLoss()
     elif method == 3: 
-        return nn.CrossEntropyLoss, nn.CrossEntropyLoss
+        return nn.CrossEntropyLoss(), nn.CrossEntropyLoss()
     elif method == 4:
-        return nn.CrossEntropyLoss, CyclicRegressionLoss()
+        return nn.CrossEntropyLoss(), CyclicRegressionLoss()
     elif method == 5:
         return CyclicRegressionLoss(), nn.CrossEntropyLoss
     elif method == 6:
         return CyclicRegressionLoss(), CyclicRegressionLoss()
     elif method == 7:
         return nn.CosineSimilarity(), nn.CosineSimilarity()
-    return None
+    return nn.CrossEntropyLoss()
 
 def clock_accuracy(pred, label):
     """
@@ -170,7 +169,7 @@ def output_to_label(method):
         r = output * 720
         h = torch.floor(r)
         m = ((r - h) * 60).to(torch.int32)
-        return torch.stack(h, m)
+        return torch.stack([h, m])
 
     def scal_min_to_int(output):
         m = (output * 60).to(torch.int32)
@@ -184,25 +183,26 @@ def output_to_label(method):
     elif method == 3:
         def split_to_whole(output):
             out_1, out_2 = output[:,0], output[:,1]
-            return torch.stack(out_1, out_2)
+            return torch.stack([out_1, out_2])
         return split_to_whole
     elif method == 4:
         def cls_reg(output):
             out_1, out_2 = output[:,0], output[:,1]
-            out = torch.stack(out_1, scal_min_to_int(out_2))
+            out = torch.stack([out_1, scal_min_to_int(out_2)])
             return out
         return cls_reg
     elif method == 5:
         def reg_cls(output):
             out_1, out_2 = output[:,0], output[:,1]
-            out = torch.stack(scal_h_to_int(out_1), out_2)
+            out = torch.stack([scal_h_to_int(out_1), out_2])
             return out
         return reg_cls
     elif method == 6:
         def reg_reg(output):
             out_1, out_2 = output[:,0], output[:,1]
-            out = torch.stack(scal_h_to_int(out_1), scal_min_to_int(out_2))
+            out = torch.stack([scal_h_to_int(out_1), scal_min_to_int(out_2)])
             return out
+        return reg_reg
     elif method == 7:
         def trig_to_angle(output):
             y, x = output[:,0], output[:,1]
@@ -212,7 +212,7 @@ def output_to_label(method):
             angle_h, angle_m = trig_to_angle(out_1), trig_to_angle(out_2)
             m = 60 * angle_m / (2 * torch.pi)
             h = 12 * angle_h / (2 * torch.pi) - (m/60)
-            return torch.stack(h, m)
+            return torch.stack([h, m])
         return trig_to_lab
     def return_same(output):
         return output

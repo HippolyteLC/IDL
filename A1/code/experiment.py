@@ -114,17 +114,15 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, \
 
         # forward + backward + optimize
         if num_output_heads == 1:
-            outputs = net(X).squeeze(0)
+            outputs = net(X)
             labels = label_converter(y)
             
             assert outputs.shape[0] == labels.shape[0], f"output shape {outputs.shape} is not same as label shape {labels.shape}"
-            print(outputs.shape, labels.shape)
             loss = loss_fn(outputs, labels)
-            loss.backward()
         elif num_output_heads == 2:
             outputs = net(X)
-            output_1, output_2 = outputs
-            lab_1, lab_2 = label_converter(y)       
+            output_1, output_2 = outputs[:,0], outputs[:,1]
+            lab_1, lab_2 = label_converter(y)      
             loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
             loss = loss_1 + loss_2
 
@@ -132,12 +130,9 @@ def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, \
         optimizer.step()
 
         total_loss += loss.detach() * X.size(0)
-        if cm is None or cm == 1:
-            total_correct += (outputs.argmax(1) == y).sum()
-        elif cm in (2,3,4,5,6):
-            outputs_correct_format = output_converter(outputs)
-            error = clock_accuracy(outputs_correct_format, y)
-            total_correct += error.sum()
+        outputs_correct_format = output_converter(outputs)
+        error = clock_accuracy(outputs_correct_format, y)
+        total_correct += error.sum()
         
     total_loss = total_loss.item()/size
     total_correct = total_correct.item()/size
@@ -162,25 +157,22 @@ def clock_val(data_loader, net, loss_fn, cm, num_output_heads, output_converter,
 
             # forward + backward + optimize
             if num_output_heads == 1:
-                outputs = net(X).squeeze(0)
+                outputs = net(X)
                 labels = label_converter(y)
                 assert outputs.shape[0] == labels.shape[0], f"output shape {outputs.shape} is not same as label shape {labels.shape}"
                 loss = loss_fn(outputs, labels)
-                loss.backward()
             elif num_output_heads == 2:
                 outputs = net(X)
-                output_1, output_2 = outputs
-                lab_1, lab_2 = label_converter(y)       
+                output_1, output_2 = outputs[:,0], outputs[:,1]
+                lab_1, lab_2 = label_converter(y)    
                 loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
                 loss = loss_1 + loss_2
 
             total_loss += loss.detach() * X.size(0)
-            if cm is None or cm == 1:
-                total_correct += (outputs.argmax(1) == y).sum()
-            elif cm in (2,3,4,5,6):
-                outputs_correct_format = output_converter(outputs)
-                error = clock_accuracy(outputs_correct_format, y)
-                total_correct += error.sum()
+
+            outputs_correct_format = output_converter(outputs)
+            error = clock_accuracy(outputs_correct_format, y)
+            total_correct += error.sum()
         
     total_loss = total_loss.item()/size
     total_correct = total_correct.item()/size
@@ -208,21 +200,18 @@ def clock_test(data_loader, net, loss_fn, cm, num_output_heads, output_converter
                 outputs = net(X)
                 labels = label_converter(y)
                 loss = loss_fn(outputs, labels)
-                loss.backward()
             elif num_output_heads == 2:
                 outputs = net(X)
-                output_1, output_2 = outputs
-                lab_1, lab_2 = label_converter(y)       
+                output_1, output_2 = outputs[:,0], outputs[:,1]
+                lab_1, lab_2 = label_converter(y)      
                 loss_1, loss_2 = loss_fn_1(output_1, lab_1), loss_fn_2(output_2, lab_2)
                 loss = loss_1 + loss_2
 
             total_loss += loss.detach() * X.size(0)
-            if cm is None or cm == 1:
-                total_correct += (outputs.argmax(1) == y).sum()
-            elif cm in (2,3,4,5,6):
-                outputs_correct_format = output_converter(outputs)
-                error = clock_accuracy(outputs_correct_format, y)
-                total_correct += error.sum()
+
+            outputs_correct_format = output_converter(outputs)
+            error = clock_accuracy(outputs_correct_format, y)
+            total_correct += error.sum()
         
     total_loss = total_loss.item()/size
     total_correct = total_correct.item()/size
@@ -372,7 +361,7 @@ def main():
     hp_logs = vars(args).copy()
     hp_logs["last_train_accuracy"] = record["train_accuracy"]
     hp_logs["last_val_accuracy"] = record["validation_accuracy"]
-    hp_logs["out_features"] = list(out_feat)
+    hp_logs["out_features"] = list(out_feat) if not isinstance(out_feat, int) else out_feat
 
     with open(hp_logs_path, 'w') as f:
         json.dump(hp_logs, f, indent=4)

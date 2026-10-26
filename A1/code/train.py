@@ -2,36 +2,8 @@ import torch
 
 from utils import clock_accuracy, get_regularization_term
 
-def main_train(data_loader, optimizer, net, loss_fn, regularization_term, device):
-    size = len(data_loader.dataset)
-    total_loss = torch.zeros((), device=device)
-    total_correct = torch.zeros((), device=device)
-    for _, (X, y) in enumerate(data_loader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        X, y = X.to(device), y.to(device)
+def clock
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
-
-        # forward + backward + optimize
-        outputs = net(X)
-        loss = loss_fn(outputs, y)
-        reg_term = get_regularization_term(regularization_term, net) # compute l2 (or other) regularization terms
-        lambda_reg=0.01 # for loss regularization terms
-        loss_reg = loss + lambda_reg*reg_term
-
-        loss_reg.backward()
-        optimizer.step()
-
-        total_loss += loss.detach() * X.size(0)
-        total_correct += (outputs.argmax(1) == y).sum()
-    
-    total_loss = total_loss.item()/size
-    total_correct = total_correct.item()/size
-
-    print(f"Train Error: \n Accuracy: {(100*total_correct):>0.1f}%, Avg loss: {total_loss:>8f} \n")
-
-    return total_loss, total_correct
 
 def clock_train(data_loader, optimizer, net, loss_fn, cm, num_output_heads, \
                 output_converter, label_converter, device):
@@ -157,6 +129,37 @@ def clock_test(data_loader, net, loss_fn, cm, num_output_heads, output_converter
     print(f"Test Error: \n Avg mins off: {(total_correct):>0.1f}, Avg loss: {total_loss:>8f} \n")
 
     return total_loss, total_correct    
+
+def main_train(data_loader, optimizer, net, loss_fn, regularization_term, device):
+    size = len(data_loader.dataset)
+    total_loss = torch.zeros((), device=device)
+    total_correct = torch.zeros((), device=device)
+    for _, (X, y) in enumerate(data_loader, 0):
+        # get the inputs; data is a list of [inputs, labels]
+        X, y = X.to(device), y.to(device)
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        outputs = net(X)
+        loss = loss_fn(outputs, y)
+        reg_term = get_regularization_term(regularization_term, net) # compute l2 (or other) regularization terms
+        lambda_reg=0.01 # for loss regularization terms
+        loss_reg = loss + lambda_reg*reg_term
+
+        loss_reg.backward()
+        optimizer.step()
+
+        total_loss += loss.detach() * X.size(0)
+        total_correct += (outputs.argmax(1) == y).sum()
+    
+    total_loss = total_loss.item()/size
+    total_correct = total_correct.item()/size
+
+    print(f"Train Error: \n Accuracy: {(100*total_correct):>0.1f}%, Avg loss: {total_loss:>8f} \n")
+
+    return total_loss, total_correct
 
 def main_val(data_loader, net, loss_fn, device):
     size = len(data_loader.dataset)

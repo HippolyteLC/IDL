@@ -1,6 +1,6 @@
 from torch.nn.init import xavier_uniform_, xavier_normal_, kaiming_uniform_, normal_
 from torch.optim import SGD, Adam, AdamW
-from torch.nn import ReLU, GELU, LeakyReLU, Module
+from torch.nn import ReLU, GELU, LeakyReLU
 import torch
 import torch.nn as nn
 

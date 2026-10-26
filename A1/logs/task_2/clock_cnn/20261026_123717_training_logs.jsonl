@@ -1,5 +1,0 @@
-{"train_loss": 8.073765733506944, "train_accuracy": 168.98503472222222, "validation_loss": 6.583175998263889, "validation_accuracy": 182.66817708333335}
-{"train_loss": 6.5799072265625, "train_accuracy": 179.75397569444445, "validation_loss": 6.5849755859375, "validation_accuracy": 182.67791666666668}
-{"train_loss": 6.579637044270833, "train_accuracy": 179.77164930555554, "validation_loss": 6.585463324652777, "validation_accuracy": 182.68041666666667}
-{"train_loss": 6.5793408203125, "train_accuracy": 179.74085069444445, "validation_loss": 6.5864697265625, "validation_accuracy": 182.69168402777777}
-{"train_loss": 6.5788764105902775, "train_accuracy": 179.75241319444444, "validation_loss": 6.588516167534722, "validation_accuracy": 182.7081076388889}

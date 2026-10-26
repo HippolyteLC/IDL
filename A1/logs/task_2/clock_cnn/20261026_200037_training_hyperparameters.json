@@ -25,13 +25,13 @@
     },
     "training": {
         "seed": 111,
-        "num_epochs": 5,
+        "num_epochs": 1,
         "optimizer": "adam",
         "learning_rate": 0.001,
         "weight_decay": 0,
         "regularization_term": "",
         "save": false
     },
-    "last_train_accuracy": 179.47005208333334,
-    "last_val_accuracy": 181.7473611111111
+    "last_train_accuracy": 179.75838541666667,
+    "last_val_accuracy": 182.96109375
 }

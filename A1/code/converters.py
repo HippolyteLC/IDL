@@ -17,6 +17,7 @@ def output_to_label(method):
         return torch.clamp(torch.round(x.squeeze(-1) * 12), 0, 11)
 
     def cls_total(out):
+        print(out.dim())
         total = out.argmax(dim=1) * (720 // out.shape[1])
         return to_hm(total // 60, total % 60)
 

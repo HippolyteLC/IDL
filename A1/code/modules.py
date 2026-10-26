@@ -206,14 +206,14 @@ class ClockCNNMultihead(ClockCNN):
 
         output_heads = []
         if isinstance(out_feat, int):
-            out_feats = [out_feat for _ in range(num_heads)]
+            out_feat = [out_feat for _ in range(num_heads)]
 
         for i in range(num_heads):
             output_head = []
             output_head.append(LinearActivation(self.in_feat, D, activation, dropout=dropout, bias=bias, batch_norm=batch_norm))
             for _ in range(K-1):
                 output_head.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias, batch_norm=batch_norm))
-            output_head.append(nn.Linear(D, out_feats[i]))
+            output_head.append(nn.Linear(D, out_feat[i]))
             output_heads.append(nn.Sequential(*output_head))
 
         self.output_heads = nn.ModuleList(output_heads)

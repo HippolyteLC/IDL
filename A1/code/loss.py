@@ -39,14 +39,14 @@ class Criterion:
     final loss calculation, the correctly formatted outputs. 
     
     """
-    def __init__(self, net, num_output_heads, method):
+    def __init__(self, net, model_config):
         self.net = net
 
-        self.loss_funcs = get_loss_fc(method)
+        self.method = model_config.clock_method
+        self.loss_funcs = get_loss_fc(self.method)
         self.output_converter = output_to_label(self.method)
 
-        self.method = method
-        self.num_output_heads = num_output_heads
+        self.num_output_heads = model_config.num_output_heads
 
         self.label_converter = None    
 

@@ -21,6 +21,8 @@ from data_loader import DataHandler
 from utils import load_init_method, load_optimizer_method, get_activation_method
 from utils import get_net_dims, get_loss_fc, bel_converter_fn, output_to_label
 
+from config import ExperimentConfig
+
 from datetime import datetime 
 
 from functools import partial
@@ -38,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     # general reproducibility / 
     parser.add_argument("--save", action="store_true")
-    parser.add_argument("--dataset", default="fashionmnist")
+    parser.add_argument("--dataset-name", default="fashionmnist")
     parser.add_argument("--seed", type=int, default=111)
     parser.add_argument("--split-seed", type=int, default=2026)
     parser.add_argument("--batch-size", type=int, default=1024)
@@ -71,9 +73,9 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
+    config = ExperimentConfig.from_argparse(args)
 
-    cm = args.clock_method
-    task = 1 if not cm else 2
+    task = 1 if not config.model.clock_method else 2
 
     LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{args.model}"
     if not os.path.exists(LOGS_DIR):

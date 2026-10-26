@@ -3,6 +3,10 @@ from torch.optim import SGD, Adam, AdamW
 from torch.nn import ReLU, GELU, LeakyReLU
 import torch
 
+from modules import DynamicCNN, DynamicMLP, ClockCNNMultihead
+
+from activations import SmoothedTanh, SmoothedSigmoid, L2NormActivation
+
 def load_init_method(init_method):
     method = init_method.lower()
     if method == "xavier_normal":
@@ -70,15 +74,24 @@ def get_net_dims(clock_method, dataset_name, num_clock_classes):
 
     return H, W, out_feat, C_i, num_output_heads
 
-def clock_accuracy(pred, label):
-    """
-    Common sense accuracy.
-    input: pred, label. outputs the shortest distance from pred to label considering
-    the full cycle of 720 minutes. 
-    I.e. error is in minutes that the prediction is off by. 
-    """
-    pred_in_mins = pred[:,0]*60 + pred[:,1]
-    label_in_mins = label[:,0]*60 + label[:,1]
-    diff = torch.abs(pred_in_mins - label_in_mins)
-    return torch.minimum(diff, 720 - diff) 
 
+def get_net(model_config):
+    model = model_config.model
+    if model == "mlp":
+        net = DynamicMLP(model_config)
+    elif model == "cnn":
+        net = DynamicCNN(model_config)
+    elif model == "clock_cnn":
+        net = ClockCNNMultihead(model_config)
+        cm = model_config.clock_method
+        if cm == 2:
+            for oh in net.output_heads:
+                oh.append(SmoothedSigmoid())
+        elif cm in (4, 5, 6): 
+            for oh in net.output_heads:
+                if hasattr(oh[-1], 'out_features') and oh[-1].out_features == 1:
+                    oh.append(SmoothedSigmoid())
+        elif cm == 7:
+            for oh in net.output_heads:
+                oh.append(L2NormActivation())
+    return net

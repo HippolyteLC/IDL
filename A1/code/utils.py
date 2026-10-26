@@ -2,12 +2,9 @@ from torch.nn.init import xavier_uniform_, xavier_normal_, kaiming_uniform_, nor
 from torch.optim import SGD, Adam, AdamW
 from torch.nn import ReLU, GELU, LeakyReLU
 import torch
-import torch.nn as nn
 
-from modules import CyclicRegressionLoss
-
-def load_init_method(method):
-    method = method.lower()
+def load_init_method(init_method):
+    method = init_method.lower()
     if method == "xavier_normal":
         return xavier_normal_
     elif method == "xavier_uniform":
@@ -18,8 +15,8 @@ def load_init_method(method):
         return normal_
     return None
 
-def load_optimizer_method(method):
-    method = method.lower()
+def load_optimizer_method(optim_method):
+    method = optim_method.lower()
     if method == "sgd":
         return SGD
     elif method == "adam":
@@ -28,8 +25,8 @@ def load_optimizer_method(method):
         return AdamW
     return None
 
-def get_activation_method(method):
-    method = method.lower()
+def get_activation_method(act_method):
+    method = act_method.lower()
     if method == "relu":
         return ReLU
     elif method == "gelu":
@@ -38,20 +35,20 @@ def get_activation_method(method):
         return LeakyReLU
     return None
 
-def get_regularization_term(method, m):
-    method = method.lower()
+def get_regularization_term(reg_method, m):
+    method = reg_method.lower()
     if method == "l2":
         return sum(p.pow(2).sum() for p in m.parameters())
     return 0
 
-def get_net_dims(method, dataset_name, num_clock_classes):
+def get_net_dims(clock_method, dataset_name, num_clock_classes):
     datasets = {
         "clock_75": (75, 75, 1),
         "clock_150": (150, 150, 1),
         "cifar10": (32, 32, 3),
         "fashionmnist": (28, 28, 1),
     }
-    if method not in range(1, 8):
+    if clock_method not in range(1, 8):
         raise ValueError("method must be an integer in [1, 7]")
     if dataset_name not in datasets:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
@@ -67,48 +64,9 @@ def get_net_dims(method, dataset_name, num_clock_classes):
             5: ([1, 60], 2),
             6: (1, 2),
             7: (1, 2),
-        }[method]
+        }[clock_method]
     else:
         out_feat, num_output_heads = 10, 1
-
-    return H, W, out_feat, C_i, num_output_heads
-
-def get_net_dims(method, dataset_name, num_clock_classes):
-    if not method:
-        raise ValueError("Provide a valid method integer: [1,2,...,7]")
-    
-    if dataset_name in ("clock_75", "clock_150"):
-        if method == 1:
-            out_feat = num_clock_classes
-            num_output_heads = 1
-        elif method == 2:
-            out_feat = 1
-            num_output_heads = 1
-        else:
-            num_output_heads = 2 
-        if method == 3:
-            out_feat = [12, 60]
-        elif method == 4:
-            out_feat = [12, 1]
-        elif method == 5:
-            out_feat = [1, 60]
-        elif method in (6, 7):
-            out_feat = 1
-        if dataset_name == "clock_75":
-            H, W = 75, 75
-        elif dataset_name == "clock_150":
-            H, W = 150, 150
-        C_i = 1
-    elif dataset_name == "cifar10":
-        H, W = 32, 32
-        out_feat = 10
-        C_i = 3
-        num_output_heads = 1
-    elif dataset_name == "fashionmnist":
-        H, W = 28, 28 
-        out_feat = 10
-        C_i = 1
-        num_output_heads = 1
 
     return H, W, out_feat, C_i, num_output_heads
 

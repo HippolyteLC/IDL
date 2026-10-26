@@ -4,20 +4,6 @@ import numpy as np
 
 import torch
 
-from activations import SmoothedSigmoid, SmoothedTanh, L2NormActivation
-
-def clock_accuracy(pred, label):
-    """
-    Common sense accuracy.
-    input: pred, label. outputs the shortest distance from pred to label considering
-    the full cycle of 720 minutes. 
-    I.e. error is in minutes that the prediction is off by. 
-    """
-    pred_in_mins = pred[:,0]*60 + pred[:,1]
-    label_in_mins = label[:,0]*60 + label[:,1]
-    diff = torch.abs(pred_in_mins - label_in_mins)
-    return torch.minimum(diff, 720 - diff) 
-
 def init_weights(m, init_method, verbose=False):
     if verbose:
         print(m)
@@ -35,6 +21,7 @@ def init_weights(m, init_method, verbose=False):
 class LinearActivation(nn.Module):
     def __init__(self, in_feat, out_feat, activation, dropout, bias, batch_norm):
         super().__init__()
+    
         self.a = activation
         self.bias = bias
         self.flatten = nn.Flatten()
@@ -81,6 +68,8 @@ class DynamicMLP(nn.Module):
     """
     def __init__(self, H, W, C_i, out_feat, K, D=None, dropout=0, activation=None, bias=False, batch_norm=False):
         super().__init__()
+        if isinstance(out_feat, list):
+            out_feat = out_feat[0]
         in_feat = H*W*C_i
         layers = [LinearActivation(in_feat, D, activation, dropout=dropout, bias=bias, batch_norm=batch_norm)]
         for _ in range(K-1):
@@ -109,6 +98,10 @@ class DynamicCNN(nn.Module):
     """
     def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False):
         super().__init__()
+
+        if isinstance(out_feat, list):
+            out_feat = out_feat[0]
+
         n_pools = int(max(0, np.ceil(np.log2(H/(1<<2)))))
 
         layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=batch_norm)]
@@ -158,6 +151,8 @@ class ClockCNNMultihead(ClockCNN):
         output_heads = []
         if isinstance(out_feat, int):
             out_feats = [self.out_feat for _ in range(num_heads)]
+        else:
+            out_feats = self.out_feat
 
         for i in range(num_heads):
             output_head = []

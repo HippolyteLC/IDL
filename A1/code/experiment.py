@@ -73,9 +73,7 @@ def main():
     args = parse_args()
 
     cm = args.clock_method
-    task = 1  
-    if cm:
-        task = 2
+    task = 1 if not cm else 2
 
     LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{args.model}"
     if not os.path.exists(LOGS_DIR):
@@ -95,19 +93,8 @@ def main():
     dataset_name = args.dataset.lower()
     datahandler = DataHandler(dataset_name=dataset_name, device=device, batch_size=args.batch_size, seed=args.split_seed)
     train_loader, val_loader, test_loader = datahandler.data_loader()
-    
-    if dataset_name == "fashionmnist":
-        H, W = 28, 28 
-        out_feat = 10
-        C_i = 1
-    elif dataset_name == "cifar10":
-        H, W = 32, 32
-        out_feat = 10
-        C_i = 3
-    elif dataset_name in ("clock_75", "clock_150"):
-        H, W, out_feat, C_i, num_output_heads = get_net_dims(
-            cm, dataset_name, args.num_clock_classes
-        )
+
+    H, W, out_feat, C_i, num_output_heads = get_net_dims(cm, dataset_name, args.num_clock_classes)
 
     K = args.n_hidden_fc_layers
     D = args.fc_width

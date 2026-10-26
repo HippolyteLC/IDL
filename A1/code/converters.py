@@ -80,8 +80,7 @@ def get_label_converter_fn(method: int, out_feat):
 
     def convert_single_to_scalar(label):
         scaled = torch.where(label > 11, label / 60.0, label / 12.0)
-        r = (torch.round(scaled * 100) / 100).unsqueeze(-1)
-        return r.unsqueeze(-1) if r.dim() == 1 else r
+        return (torch.round(scaled * 100) / 100).unsqueeze(-1)
 
     def convert_to_bins(label):
         total_mins = 720
@@ -94,16 +93,15 @@ def get_label_converter_fn(method: int, out_feat):
         ).to(torch.int64)
 
     def convert_to_two_decimals(label):
-        r = (torch.round(to_minutes(label) / 720 * 100) / 100).unsqueeze(-1)
-        return r.unsqueeze(-1) if r.dim() == 1 else r
+        return (torch.round(to_minutes(label) / 720 * 100) / 100).unsqueeze(-1)
 
     def cls_reg(label):
         h, m = label[:, 0], label[:, 1]
-        return h.to(torch.int32), convert_single_to_scalar(m)
+        return h.to(torch.int64), convert_single_to_scalar(m)
 
     def reg_cls(label):
         h, m = label[:, 0], label[:, 1]
-        return convert_single_to_scalar(h), m.to(torch.int32)
+        return convert_single_to_scalar(h), m.to(torch.int64)
 
     def reg_reg(label):
         h, m = label[:, 0], label[:, 1]

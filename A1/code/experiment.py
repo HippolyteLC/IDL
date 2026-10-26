@@ -36,9 +36,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-name", default="fashionmnist")
     parser.add_argument("--seed", type=int, default=111)
     parser.add_argument("--split-seed", type=int, default=2026)
-    parser.add_argument("--batch-size", type=int, default=1024)
+    parser.add_argument("--batch-size", type=int, default=256, help="For the clock or cifar ds use 256 batch size, for fashionmnist use 1024") 
     parser.add_argument("--model", default="cnn")
-    parser.add_argument("--num-epochs", type=int, default=50)
+    parser.add_argument("--num-epochs", type=int, default=5)
 
     # clock time predictor params
     parser.add_argument("--num-heads", type=int, default=2)
@@ -94,7 +94,7 @@ def main():
 
     optimizer = load_optim(net, config.training) 
 
-    for epoch in range(config.train.num_epochs):
+    for epoch in range(config.training.num_epochs):
         print(f'EPOCH {epoch + 1}:')
 
         if config.model.clock_method:

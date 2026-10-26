@@ -53,8 +53,6 @@ def get_net_dims(clock_method, dataset_name, num_clock_classes):
         "cifar10": (32, 32, 3),
         "fashionmnist": (28, 28, 1),
     }
-    if clock_method not in range(1, 8):
-        raise ValueError("method must be an integer in [1, 7]")
     if dataset_name not in datasets:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
 
@@ -68,9 +66,7 @@ def get_net_dims(clock_method, dataset_name, num_clock_classes):
             4: ([12, 1], 2),
             5: ([1, 60], 2),
             6: (1, 2),
-            7: (1, 2),
-        }[clock_method]
-    else:
-        out_feat, num_output_heads = 10, 1
+            7: (2, 2),
+        }.get(clock_method, (10, 1))
 
     return H, W, out_feat, C_i, num_output_heads

@@ -6,14 +6,40 @@ import torch
 
 from utils import get_activation_method, load_init_method
 
-from modules import DynamicCNN, DynamicMLP, ClockCNNMultihead
-
 from activations import SmoothedTanh, SmoothedSigmoid, L2NormActivation
 
 from functools import partial
 
 
 
+class ModelLoader:
+    @staticmethod
+    def get_net(model_config):
+        model = model_config.model
+
+        if model == "mlp":
+            net = DynamicMLP(model_config)
+        elif model == "cnn":
+            net = DynamicCNN(model_config)
+        elif model == "clock_cnn":
+            net = ClockCNNMultihead(model_config)
+            cm = model_config.clock_method
+
+            for oh in net.output_heads:
+                if cm == 2:
+                    oh.append(SmoothedSigmoid())
+                elif cm in (4, 5, 6) and getattr(oh[-1], "out_features", None) == 1:
+                    oh.append(SmoothedSigmoid())
+                elif cm == 7:
+                    oh.append(L2NormActivation())
+        
+        net.apply(partial(init_weights,
+                init_method=load_init_method(model_config.init_method),
+                ))
+
+        return net
+
+        # raise ValueError(f"Unknown model: {model}")
 
 def init_weights(m, init_method, verbose=False):
     if verbose:
@@ -198,31 +224,3 @@ class ClockCNNMultihead(ClockCNN):
         return out
 
     
-class ModelLoader:
-    @staticmethod
-    def get_net(model_config):
-        model = model_config.model
-
-        if model == "mlp":
-            net = DynamicMLP(model_config)
-        elif model == "cnn":
-            net = DynamicCNN(model_config)
-        elif model == "clock_cnn":
-            net = ClockCNNMultihead(model_config)
-            cm = model_config.clock_method
-
-            for oh in net.output_heads:
-                if cm == 2:
-                    oh.append(SmoothedSigmoid())
-                elif cm in (4, 5, 6) and getattr(oh[-1], "out_features", None) == 1:
-                    oh.append(SmoothedSigmoid())
-                elif cm == 7:
-                    oh.append(L2NormActivation())
-        
-        net.apply(partial(init_weights,
-                init_method=load_init_method(model_config.init_method),
-                ))
-
-        return net
-
-        # raise ValueError(f"Unknown model: {model}")

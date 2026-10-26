@@ -3,12 +3,25 @@ import torch.nn as nn
 
 from converters import get_label_converter_fn, output_to_label
 
+class CosineSimilarityLoss(nn.Module):
+    def __init__(self, dim=-1):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, pred, labels):
+        """
+        Computes 1 - cosine similarity as a loss, averaged over the batch.
+        Ensures the final output is a strict scalar.
+        """
+        similarity = torch.cosine_similarity(pred, labels, dim=self.dim)
+        return 1.0 - similarity.mean()
+
 class CyclicRegressionLoss(nn.Module):
     def forward(self, pred, labels):
         """ 
         Assumes scaled output between 0 and 1.
         """
-        return 1 - torch.cos((pred-labels)*2*torch.pi)
+        return (1 - torch.cos((pred-labels)*2*torch.pi)).mean()
 
 def get_loss_fc(method: int):
     return {
@@ -18,7 +31,7 @@ def get_loss_fc(method: int):
         4: (nn.CrossEntropyLoss(), CyclicRegressionLoss()),
         5: (CyclicRegressionLoss(), nn.CrossEntropyLoss()),
         6: (CyclicRegressionLoss(), CyclicRegressionLoss()),
-        7: (nn.CosineSimilarity(), nn.CosineSimilarity())
+        7: (CosineSimilarityLoss(), CosineSimilarityLoss())
     }.get(method, (nn.CrossEntropyLoss(),))
 
 def clock_accuracy(pred, label):
@@ -56,12 +69,16 @@ class Criterion:
 
         outputs = self.net(X) # tuple of outputs if multiple heads
         labels = self.label_converter(y)
+        loss = torch.tensor(0.0, device=X.device)
 
-        losses = []
-        for i in range(self.num_output_heads):
-            loss = self.loss_funcs[i](outputs[i], labels[i])
-            losses.append(loss)
-        loss = torch.sum(losses)
+        if self.num_output_heads == 1:
+            loss = self.loss_funcs[0](outputs, labels)
+        else:
+            for i in range(self.num_output_heads):
+                head_loss = self.loss_funcs[i](outputs[i], labels[i])
+                if head_loss.ndim > 0:
+                    head_loss = head_loss.mean()
+                loss = loss + head_loss
 
         standardized_output = self.output_converter(outputs)
         if self.method:

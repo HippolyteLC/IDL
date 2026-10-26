@@ -156,11 +156,9 @@ class ClockCNNMultihead(ClockCNN):
         self.output_heads = nn.ModuleList(output_heads)
 
     def forward(self, x):
-        r = torch.stack(list(f(self.shared_backbone(x)) for f in self.output_heads))
-        if len(r) == 1:
-            return r.squeeze(0)
-        else:
-            return r
+        r = tuple(f(self.shared_backbone(x)) for f in self.output_heads)
+        out = r[0] if len(r) == 1 else r
+        
 class CyclicRegressionLoss(nn.Module):
     def forward(self, pred, labels):
         """ 

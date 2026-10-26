@@ -12,14 +12,14 @@ class CyclicRegressionLoss(nn.Module):
 
 def get_loss_fc(method: int):
     return {
-        1: tuple(nn.CrossEntropyLoss()), 
-        2: tuple(CyclicRegressionLoss()),
+        1: (nn.CrossEntropyLoss(),), 
+        2: (CyclicRegressionLoss(),),
         3: (nn.CrossEntropyLoss(), nn.CrossEntropyLoss()),
         4: (nn.CrossEntropyLoss(), CyclicRegressionLoss()),
         5: (CyclicRegressionLoss(), nn.CrossEntropyLoss()),
         6: (CyclicRegressionLoss(), CyclicRegressionLoss()),
         7: (nn.CosineSimilarity(), nn.CosineSimilarity())
-    }.get(method, tuple(nn.CrossEntropyLoss()))
+    }.get(method, (nn.CrossEntropyLoss(),))
 
 def clock_accuracy(pred, label):
     """

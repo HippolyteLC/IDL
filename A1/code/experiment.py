@@ -4,8 +4,6 @@ from pathlib import Path
 
 import torch
 
-import torch.nn as nn
-
 from modules import ModelLoader
 
 from loss import Criterion
@@ -71,10 +69,10 @@ def main():
 
     task = 1 if not config.model.clock_method else 2
 
-    LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{args.model}"
+    LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{config.model.model}"
     if not os.path.exists(LOGS_DIR):
         os.makedirs(LOGS_DIR)
-    CHECKPOINTS_DIR = Path(__file__).parent.parent / f"checkpoints/task_{task}/{args.model}"
+    CHECKPOINTS_DIR = Path(__file__).parent.parent / f"checkpoints/task_{task}/{config.model.model}"
     if not os.path.exists(CHECKPOINTS_DIR):
         os.makedirs(CHECKPOINTS_DIR)
 
@@ -82,7 +80,7 @@ def main():
     train_logs_path = LOGS_DIR / f"{timestamp}_training_logs.jsonl"
     hp_logs_path = LOGS_DIR / f"{timestamp}_training_hyperparameters.json"
 
-    datahandler = DataHandler(config.data_config, device)
+    datahandler = DataHandler(config.data, device)
     train_loader, val_loader, test_loader = datahandler.data_loader()
 
     torch.manual_seed(config.training.seed)
@@ -95,7 +93,7 @@ def main():
 
     optimizer = load_optim(net, config.training) 
 
-    for epoch in range(args.num_epochs):
+    for epoch in range(config.train.num_epochs):
         print(f'EPOCH {epoch + 1}:')
 
         if config.model.clock_method:

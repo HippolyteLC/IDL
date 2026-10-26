@@ -69,7 +69,7 @@ class ExperimentConfig:
     training: TrainingConfig = field(default_factory=TrainingConfig)
 
     def __post_init__(self):
-        self.model.compute_dimensions(self.data.dataset)
+        self.model.compute_dimensions(self.data.dataset_name)
 
     @classmethod
     def from_argparse(cls, args: argparse.Namespace):

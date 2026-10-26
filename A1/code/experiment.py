@@ -309,7 +309,10 @@ def main():
     elif args.model.lower() == "cnn":
         net = DynamicCNN(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm)
     elif args.model.lower() == "clock_cnn":
-        net = ClockCNNMultihead(H=H, W=W, C_i=C_i, out_feat=out_feat, kernel_size=kernel_size, K=K, D=D, activation=activation, dropout=args.dropout, bias=args.bias, batch_norm=args.batch_norm, num_heads=num_output_heads)
+        # H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False, num_heads=2
+        net = ClockCNNMultihead(H=H, W=W, C_i=C_i, out_feat=out_feat, \
+                                kernel_size=kernel_size, K=K, D=D, dropout=args.dropout, activation=activation, \
+                                    bias=args.bias, batch_norm=args.batch_norm, num_heads=num_output_heads)
         if cm == 2:
             for oh in net.output_heads:
                 oh.append(SmoothedSigmoid())
@@ -364,6 +367,7 @@ def main():
     hp_logs = vars(args).copy()
     hp_logs["last_train_accuracy"] = record["train_accuracy"]
     hp_logs["last_val_accuracy"] = record["validation_accuracy"]
+    hp_logs["out_features"] = list(out_feat)
 
     with open(hp_logs_path, 'w') as f:
         json.dump(hp_logs, f, indent=4)

@@ -120,7 +120,7 @@ class DynamicCNN(nn.Module):
 
 class ClockCNN(nn.Module):
     def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False):
-        super().__init__(H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False)
+        super().__init__()
         n_pools = int(max(0, np.ceil(np.log2(H/(1<<2)))))
 
         layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=batch_norm)]
@@ -139,19 +139,21 @@ class ClockCNN(nn.Module):
         
 class ClockCNNMultihead(ClockCNN):
     def __init__(self, H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False, num_heads=2):
-        super().__init__(H, W, C_i, out_feat, kernel_size, K, D, dropout=0, activation=None, bias=False, batch_norm=False)
+        super().__init__(H, W, C_i, out_feat, kernel_size, K, D, dropout, activation, bias, batch_norm)
 
         output_heads = []
         if isinstance(out_feat, int):
             out_feats = [self.out_feat for _ in range(num_heads)]
 
         for i in range(num_heads):
-            output_heads.append(LinearActivation(self.in_feat, D, activation, dropout=dropout, bias=bias, batch_norm=batch_norm))
+            output_head = []
+            output_head.append(LinearActivation(self.in_feat, D, activation, dropout=dropout, bias=bias, batch_norm=batch_norm))
             for _ in range(K-1):
-                output_heads.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias, batch_norm=batch_norm))
-            output_heads.append(nn.Linear(D, out_feats[i]))
+                output_head.append(LinearActivation(D, D, activation, dropout=dropout, bias=bias, batch_norm=batch_norm))
+            output_head.append(nn.Linear(D, out_feats[i]))
+            output_heads.append(nn.Sequential(*output_head))
 
-        self.output_heads = nn.ModuleList([nn.Sequential(*oh) for oh in output_heads])
+        self.output_heads = nn.ModuleList(output_heads)
 
     def forward(self, x):
         return tuple(f(self.shared_backbone(x)) for f in self.output_heads)

@@ -45,30 +45,32 @@ def get_regularization_term(method, m):
     return 0
 
 def get_net_dims(method, dataset_name, num_clock_classes):
-    if method in ("clock_75", "clock_150"):
-        cm = method
-        if cm == 1:
+    if not method:
+        raise ValueError("Provide a valid method integer: [1,2,...,7]")
+    if dataset_name in ("clock_75", "clock_150"):
+        if method == 1:
             out_feat = num_clock_classes
             num_output_heads = 1
-        elif cm == 2:
+        elif method == 2:
             out_feat = 1
             num_output_heads = 1
         else:
             num_output_heads = 2 
-        if cm == 3:
+        if method == 3:
             out_feat = [12, 60]
-        elif cm == 4:
+        elif method == 4:
             out_feat = [12, 1]
-        elif cm == 5:
+        elif method == 5:
             out_feat = [1, 60]
-        elif cm in (6, 7):
+        elif method in (6, 7):
             out_feat = 1
         if dataset_name == "clock_75":
             H, W = 75, 75
         elif dataset_name == "clock_150":
             H, W = 150, 150
         C_i = 1
-    return H, W, out_feat, C_i, num_output_heads
+
+        return H, W, out_feat, C_i, num_output_heads
 
 def get_label_converter_fn(method: int, out_feat):
     """

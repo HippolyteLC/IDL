@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
 
     # clock time predictor params
     parser.add_argument("--num-heads", type=int, default=2)
-    parser.add_argument("--clock-method", type=int, default=1)
+    parser.add_argument("--clock-method", type=int, default=None)
     parser.add_argument("--num-clock-classes", type=int, default=720)
 
     # optimizer + lr 
@@ -342,11 +342,14 @@ def main():
             train_loss, train_correct = clock_train(train_loader, optimizer, net, loss_function, \
                                                     cm, num_output_heads,\
                                                     output_converter, label_converter)
+            net.eval()
             vloss, vcorrect = clock_val(val_loader, net, loss_function, cm, num_output_heads,\
                                                     output_converter, label_converter)
         else:
+            net.train(True)
+            train_loss, train_correct = main_train(train_loader, optimizer, net, \
+                                                   loss_function, regularization_term=args.regularization.term)
             net.eval()
-            train_loss, train_correct = main_train(train_loader, optimizer, net, loss_function)
             vloss, vcorrect = main_val(val_loader, net, loss_function)
         
         record = {}

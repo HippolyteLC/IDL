@@ -8,7 +8,7 @@ import json
 
 from typing import Union, List, Optional
 
-from utils import get_net_dims
+from src.helpers.utils import get_net_dims
 
 
 @dataclass

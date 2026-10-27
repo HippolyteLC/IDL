@@ -11,7 +11,7 @@ import numpy as np
 
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
 class ClockDataset(Dataset):
     def __init__(self, data_dir, dataset_name="clock_75", seed=111, test_true=False):

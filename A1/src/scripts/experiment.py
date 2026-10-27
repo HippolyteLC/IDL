@@ -4,19 +4,19 @@ from pathlib import Path
 
 import torch
 
-from modules import ModelLoader
+from src.model.modules import ModelLoader
 
-from loss import Criterion
+from src.model.loss import Criterion
 
-from train import clock_train, clock_val
-from train import main_train, main_val
-import train
+from src.model.train import clock_train, clock_val
+from src.model.train import main_train, main_val
+import src.model.train as train
 
-from data_loader import DataHandler
+from src.dataloader.data_loader import DataHandler
 
-from utils import load_optim
+from src.helpers.utils import load_optim
 
-from config import ExperimentConfig
+from src.config.config import ExperimentConfig
 
 from datetime import datetime 
 
@@ -85,10 +85,10 @@ def main():
     task = 1 if not config.model.clock_method else 2
     train.VAL_OR_TEST_STRING = "Test" if config.training.test else "Validation"
 
-    LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{config.model.model}_{config.model.clock_method}"
+    LOGS_DIR = Path(__file__).parent.parent.parent / f"logs/task_{task}/{config.model.model}_{config.model.clock_method}"
     if not os.path.exists(LOGS_DIR):
         os.makedirs(LOGS_DIR)
-    CHECKPOINTS_DIR = Path(__file__).parent.parent / f"checkpoints/task_{task}/{config.model.model}"
+    CHECKPOINTS_DIR = Path(__file__).parent.parent.parent / f"checkpoints/task_{task}/{config.model.model}"
     if not os.path.exists(CHECKPOINTS_DIR):
         os.makedirs(CHECKPOINTS_DIR)
 

@@ -4,9 +4,9 @@ import numpy as np
 
 import torch
 
-from utils import get_activation_method, load_init_method
+from src.helpers.utils import get_activation_method, load_init_method
 
-from activations import SmoothedTanh, SmoothedSigmoid, L2NormActivation
+from src.model.activations import SmoothedTanh, SmoothedSigmoid, L2NormActivation
 
 from functools import partial
 

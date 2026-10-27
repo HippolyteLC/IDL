@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from converters import get_label_converter_fn, output_to_label
+from src.helpers.converters import get_label_converter_fn, output_to_label
 
 class CosineSimilarityLoss(nn.Module):
     def __init__(self, dim=-1):

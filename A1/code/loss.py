@@ -65,6 +65,8 @@ class Criterion:
 
     def forward(self, X, y, verbose=False):
         # TODO: fix for method 3 (cls, cls)
+        # TODO: fix for method 2 (train loss and validation loss are constant/ no not change)
+        # TODO: fix for method 3, wrong shape (batch/ output dims)
         if self.label_converter is None:
             self.label_converter = get_label_converter_fn(self.method, y.shape[-1])
 

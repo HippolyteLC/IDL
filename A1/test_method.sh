@@ -6,7 +6,7 @@ for method in {1..7}; do
     echo "Running test for method: $method"
     echo "=========================================="
     
-    python3 A1/code/scripts/experiment.py \
+    python3 -m src.scripts.experiment \
     --model clock_cnn \
     --num-epochs 20 \
     --dataset clock_75 \

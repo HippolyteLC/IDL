@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import datasets
 from torchvision.transforms import v2
 from torch.utils.data.dataset import random_split
@@ -14,7 +14,7 @@ from pathlib import Path
 DATA_DIR = Path(__file__).parent.parent / "data"
 
 class ClockDataset(Dataset):
-    def __init__(self, data_dir, dataset_name="clock_75", target_transform=None, seed=111):
+    def __init__(self, data_dir, dataset_name="clock_75", seed=111, test=False):
         if dataset_name == "clock_75":
             sub_dir = "clock_data_75" 
         elif dataset_name == "clock_150":
@@ -28,18 +28,23 @@ class ClockDataset(Dataset):
         raw_imgs = torch.from_numpy(np.load(img_file))
         imgs = torch.unsqueeze(raw_imgs, 1)#.to(torch.float32)
         generator = torch.Generator().manual_seed(seed)
-
+        
         dataset_length = len(self.img_labels)
-        train_length = int(dataset_length * 0.8)
-        val_length = int(dataset_length * 0.1) 
-        test_length = dataset_length - train_length - val_length
-        train, val, test = random_split(self.img_labels, [train_length, val_length, test_length], generator=generator)
+        train_val_length = int(dataset_length * 0.9)
+        test_length = dataset_length - train_val_length
+        train_val, test = random_split(self.img_labels, [train_val_length, test_length], generator=generator)
+        if not test:
+            train_length = int(dataset_length * 0.8)
+            val_length = train_val_length - train_length
+            train, val =  random_split(self.img_labels, [train_length, val_length], generator=generator)
+        else:
+            train = train_val
+            val = Subset(self.img_labels, [])
+
         self.splits = train, val, test
         imgs = v2.ToDtype(torch.float32, scale=True)(imgs)
         std, mean = torch.std_mean(imgs[train.indices], dim=(0,2,3))
         self.imgs = v2.Normalize(mean, std)(imgs)
-
-        self.target_transform = target_transform
 
     def __len__(self):
         return len(self.img_labels)
@@ -48,10 +53,13 @@ class ClockDataset(Dataset):
         return self.imgs[idx], self.img_labels[idx]
 
 class DataHandler:
-    def __init__(self, data_config, device):
+    def __init__(self, experiment_config, device):
         self.data_dir = DATA_DIR
         self.device = device
-        
+
+        test_true = experiment_config.train.test
+
+        data_config = experiment_config.data
         self.dataset_name = data_config.dataset_name
         self.batch_size = data_config.batch_size
         self.val_split = data_config.val_split
@@ -61,8 +69,8 @@ class DataHandler:
         elif self.dataset_name.lower() == "cifar10":
             self.data_class = datasets.CIFAR10
         elif self.dataset_name.lower() in ("clock_75", "clock_150"):
-            self.clock_ds = ClockDataset(data_dir=self.data_dir, dataset_name=self.dataset_name, seed=self.seed)
-
+            self.clock_ds = ClockDataset(data_dir=self.data_dir, dataset_name=self.dataset_name, \
+                                         seed=self.seed, test=test_true)
         self.transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
         self.train_loader = None

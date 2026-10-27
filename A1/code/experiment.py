@@ -31,14 +31,25 @@ def parse_args() -> argparse.Namespace:
     """Parse the reproducible experiment command-line options."""
 
     parser = argparse.ArgumentParser(description=__doc__)
-    # general reproducibility / 
-    parser.add_argument("--save", action="store_true")
+    # =============================
+    # Dataset params
+    # ============================= 
     parser.add_argument("--dataset-name", default="fashionmnist")
-    parser.add_argument("--seed", type=int, default=111)
     parser.add_argument("--split-seed", type=int, default=2026)
     parser.add_argument("--batch-size", type=int, default=256, help="For the clock or cifar ds use 256 batch size, for fashionmnist use 1024") 
-    parser.add_argument("--model", default="cnn")
+
+    # =============================
+    # Training params
+    # =============================
+    parser.add_argument("--test", action="store_true")
     parser.add_argument("--num-epochs", type=int, default=5)
+    parser.add_argument("--save", action="store_true")
+    parser.add_argument("--seed", type=int, default=111)
+
+    # =============================
+    # Model params 
+    # =============================
+    parser.add_argument("--model", default="cnn")
 
     # clock time predictor params
     parser.add_argument("--num-heads", type=int, default=2)
@@ -101,8 +112,13 @@ def main():
             # Make sure gradient tracking is on, and do a pass over the data
             net.train(True)
             train_loss, train_correct = clock_train(train_loader, optimizer, criterion, device=device)
-            net.eval()
-            vloss, vcorrect = clock_val(val_loader, criterion, device=device)
+
+            net.eval() 
+            if config.train.test:
+                vloss, vcorrect = clock_val(test_loader, criterion, device=device)
+            else:
+                vloss, vcorrect = clock_val(test_loader, criterion, device=device)
+
         else:
             net.train(True)
             train_loss, train_correct = main_train(train_loader, optimizer, criterion, device=device)
@@ -112,18 +128,18 @@ def main():
         record = {}
         record["train_loss"] = train_loss
         record["train_accuracy"] = train_correct
-        record["validation_loss"] = vloss
-        record["validation_accuracy"] = vcorrect
-        record = {k: float(v) for k, v in record.items()}
+
+        if not config.train.test:
+            record["validation_loss"] = vloss
+            record["validation_accuracy"] = vcorrect
+        else:
+            record["test_loss"] = vloss
+            record["test_accuracy"] = vcorrect    
+        record = {k: f"{float(v):.4f}" for k, v in record.items()}
         with open(train_logs_path, 'a') as f:
             f.write(json.dumps(record) + "\n")
 
-    hp_logs = config.to_dict()
-    hp_logs["last_train_accuracy"] = record["train_accuracy"]
-    hp_logs["last_val_accuracy"] = record["validation_accuracy"]
-
-    with open(hp_logs_path, 'w') as f:
-        json.dump(hp_logs, f, indent=4)
+    config.save_json(hp_logs_path)
 
     if config.training.save:
         model_path = CHECKPOINTS_DIR / f"model_{config.model.model}_{config.data.dataset_name}_{timestamp}.pth"

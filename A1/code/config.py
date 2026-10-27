@@ -60,6 +60,7 @@ class TrainingConfig:
     weight_decay: float = 0.0
     regularization_term: str = ""
     save: bool = False
+    test: bool = False
 
 
 @dataclass

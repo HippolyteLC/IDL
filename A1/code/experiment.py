@@ -116,7 +116,7 @@ def main():
             train_loss, train_correct = clock_train(train_loader, optimizer, criterion, device=device)
 
             net.eval() 
-            if config.train.test:
+            if config.training.test:
                 vloss, vcorrect = clock_val(test_loader, criterion, device=device)
             else:
                 vloss, vcorrect = clock_val(test_loader, criterion, device=device)

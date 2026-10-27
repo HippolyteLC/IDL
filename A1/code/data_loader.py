@@ -57,7 +57,7 @@ class DataHandler:
         self.data_dir = DATA_DIR
         self.device = device
 
-        test_true = experiment_config.train.test
+        test_true = experiment_config.training.test
 
         data_config = experiment_config.data
         self.dataset_name = data_config.dataset_name

@@ -4,5 +4,5 @@ module load LIACS/ItDL-2026
 ```
 2. run a test on clock dataset
 ```bash
-python3 A1/code/experiment.py --model clock_cnn --num-epochs 2 --dataset clock_75 --clock-method 2
+python3 A1/code/experiment.py --model clock_cnn --num-epochs 1 --dataset clock_75 --clock-method 1
 ```

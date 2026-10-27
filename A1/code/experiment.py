@@ -8,8 +8,9 @@ from modules import ModelLoader
 
 from loss import Criterion
 
-from train import clock_train, clock_val, clock_test
-from train import main_train, main_val, main_test
+from train import clock_train, clock_val
+from train import main_train, main_val
+import train
 
 from data_loader import DataHandler
 
@@ -80,6 +81,7 @@ def main():
     config = ExperimentConfig.from_argparse(args)
 
     task = 1 if not config.model.clock_method else 2
+    train.VAL_OR_TEST_STRING = "Test" if config.training.test else "Validation"
 
     LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{config.model.model}"
     if not os.path.exists(LOGS_DIR):
@@ -92,7 +94,7 @@ def main():
     train_logs_path = LOGS_DIR / f"{timestamp}_training_logs.jsonl"
     hp_logs_path = LOGS_DIR / f"{timestamp}_training_hyperparameters.json"
 
-    datahandler = DataHandler(config.data, device)
+    datahandler = DataHandler(config, device)
     train_loader, val_loader, test_loader = datahandler.data_loader()
 
     torch.manual_seed(config.training.seed)

@@ -1,9 +1,11 @@
-assignment_1/__pycache__/
-data/
+A1/src/helpers/log_file_corr.py
+A1/src/helpers/plotting.py
+A1/data/
 A1/checkpoints/
-A1/code/__pycache__/
-A1/code/plotting.py
-
 A1/figures/
-A1/code/log_file_corr.py
 A1/logs/task_1/org.py
+
+
+
+
+

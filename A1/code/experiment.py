@@ -20,6 +20,8 @@ from config import ExperimentConfig
 
 from datetime import datetime 
 
+import time
+
 import json
 
 import os
@@ -43,8 +45,8 @@ def parse_args() -> argparse.Namespace:
     # Training params
     # =============================
     parser.add_argument("--test", action="store_true")
-    parser.add_argument("--num-epochs", type=int, default=5)
     parser.add_argument("--save", action="store_true")
+    parser.add_argument("--num-epochs", type=int, default=5)
     parser.add_argument("--seed", type=int, default=111)
 
     # =============================
@@ -106,32 +108,41 @@ def main():
     net.to(device)
 
     optimizer = load_optim(net, config.training) 
+    scaler = torch.cuda.amp.GradScaler()
 
     for epoch in range(config.training.num_epochs):
         print(f'EPOCH {epoch + 1}:')
+        start_time = time.time()  
 
         if config.model.clock_method:
             # Make sure gradient tracking is on, and do a pass over the data
             net.train(True)
-            train_loss, train_correct = clock_train(train_loader, optimizer, criterion, device=device)
+            train_loss, train_correct = clock_train(train_loader, optimizer, criterion, device=device, scaler=scaler)
 
             net.eval() 
             if config.training.test:
                 vloss, vcorrect = clock_val(test_loader, criterion, device=device)
             else:
-                vloss, vcorrect = clock_val(test_loader, criterion, device=device)
+                vloss, vcorrect = clock_val(val_loader, criterion, device=device)
 
         else:
             net.train(True)
-            train_loss, train_correct = main_train(train_loader, optimizer, criterion, device=device)
-            net.eval()
-            vloss, vcorrect = main_val(val_loader, criterion, device=device)
+            train_loss, train_correct = main_train(train_loader, optimizer, criterion, device=device, scaler=scaler)
+            
+            net.eval() 
+            if config.training.test:
+                vloss, vcorrect = main_val(test_loader, criterion, device=device)
+            else:
+                vloss, vcorrect = main_val(val_loader, criterion, device=device)
+
+        epoch_duration = time.time() - start_time
+        print(f"Epoch {epoch + 1} completed in {epoch_duration:.2f} seconds.\n")
         
         record = {}
         record["train_loss"] = train_loss
         record["train_accuracy"] = train_correct
 
-        if not config.train.test:
+        if not config.training.test:
             record["validation_loss"] = vloss
             record["validation_accuracy"] = vcorrect
         else:

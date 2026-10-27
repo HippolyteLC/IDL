@@ -14,7 +14,7 @@ from pathlib import Path
 DATA_DIR = Path(__file__).parent.parent / "data"
 
 class ClockDataset(Dataset):
-    def __init__(self, data_dir, dataset_name="clock_75", seed=111, test=False):
+    def __init__(self, data_dir, dataset_name="clock_75", seed=111, test_true=False):
         if dataset_name == "clock_75":
             sub_dir = "clock_data_75" 
         elif dataset_name == "clock_150":
@@ -33,10 +33,10 @@ class ClockDataset(Dataset):
         train_val_length = int(dataset_length * 0.9)
         test_length = dataset_length - train_val_length
         train_val, test = random_split(self.img_labels, [train_val_length, test_length], generator=generator)
-        if not test:
+        if not test_true:
             train_length = int(dataset_length * 0.8)
             val_length = train_val_length - train_length
-            train, val =  random_split(self.img_labels, [train_length, val_length], generator=generator)
+            train, val = random_split(train_val, [train_length, val_length], generator=generator)
         else:
             train = train_val
             val = Subset(self.img_labels, [])
@@ -57,7 +57,7 @@ class DataHandler:
         self.data_dir = DATA_DIR
         self.device = device
 
-        test_true = experiment_config.training.test
+        self.test_true = experiment_config.training.test
 
         data_config = experiment_config.data
         self.dataset_name = data_config.dataset_name
@@ -70,30 +70,17 @@ class DataHandler:
             self.data_class = datasets.CIFAR10
         elif self.dataset_name.lower() in ("clock_75", "clock_150"):
             self.clock_ds = ClockDataset(data_dir=self.data_dir, dataset_name=self.dataset_name, \
-                                         seed=self.seed, test=test_true)
+                                         seed=self.seed, test_true=self.test_true)
         self.transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
         self.train_loader = None
         self.val_loader = None
         self.test_loader = None
 
-    @staticmethod
-    def to_tensors(dataset, batch_size):
-        """One pass through a torchvision dataset -> (X, y) tensors."""
-        xs, ys = [], []
-        for x, y in DataLoader(dataset, batch_size=batch_size):
-            xs.append(x); ys.append(y)
-        return torch.cat(xs), torch.cat(ys)
-
-    def make_loader(self, X, y, shuffle=True):
-        # ds = TensorDataset(X.to(self.device), y.to(self.device))
-        ds = TensorDataset(X, y)
-        if shuffle:
-            generator = torch.Generator().manual_seed(self.seed)
-            base = RandomSampler(ds, generator=generator)
-        else:
-            base = SequentialSampler(ds)
-        return DataLoader(ds, batch_size=None, sampler=BatchSampler(base, self.batch_size, drop_last=False))
+    def helper(self, subset):
+        ds = self.clock_ds
+        imgs, labels = ds.imgs, ds.img_labels
+        return imgs[subset.indices], labels[subset.indices] 
 
     def initialize_dataset(self):
         """
@@ -102,30 +89,34 @@ class DataHandler:
         """
         generator = torch.Generator().manual_seed(self.seed)
 
+        loader_kwargs = {
+        "batch_size": self.batch_size,
+        "num_workers": 4,          
+        "pin_memory": True,        
+        "persistent_workers": True          
+        }
+
         if self.dataset_name in ("clock_75", "clock_150"):
             train, val, test = self.clock_ds.splits
-            imgs, labels = self.clock_ds.imgs, self.clock_ds.img_labels
-            X_train, y_train = imgs[train.indices], labels[train.indices] 
-            X_val, y_val = imgs[val.indices], labels[val.indices] 
-            X_test, y_test = imgs[test.indices], labels[test.indices] 
+
+            train_ds = TensorDataset(self.helper(train)[0], self.helper(train)[1]) 
+            val_ds =  TensorDataset(self.helper(val)[0], self.helper(val)[1])
+            test_ds = TensorDataset(self.helper(test)[0], self.helper(test)[1])
 
         else:
             train_val = self.data_class(root=str(self.data_dir), train=True, download=True, transform=self.transform)
+            if not self.test_true:
+                train_length = int(round(len(train_val)*(1-self.val_split)))
+                val_length = len(train_val) - train_length
+                train_ds, val_ds = random_split(train_val, [train_length, val_length], generator)
+            else:
+                train_ds = train_val
+                val_ds = Subset(train_val, [])
+            test_ds = self.data_class(root=str(self.data_dir), train=False, download=True, transform=self.transform)     
 
-            train_length = int(round(len(train_val)*(1-self.val_split)))
-            val_length = len(train_val) - train_length
-            train, val = random_split(train_val, [train_length, val_length], generator)
-
-            X, y = self.to_tensors(train_val, self.batch_size)
-            X_train, y_train = X[train.indices], y[train.indices] 
-            X_val, y_val = X[val.indices], y[val.indices]
-
-            test = self.data_class(root=str(self.data_dir), train=False, download=True, transform=self.transform)
-            X_test, y_test = self.to_tensors(test, self.batch_size)
-
-        self.train_loader = self.make_loader(X_train, y_train, shuffle=True)
-        self.val_loader = self.make_loader(X_val, y_val, shuffle=False)
-        self.test_loader = self.make_loader(X_test, y_test, shuffle=False)
+        self.train_loader = DataLoader(train_ds, shuffle=True, **loader_kwargs)
+        self.val_loader = DataLoader(val_ds, shuffle=False, **loader_kwargs)
+        self.test_loader = DataLoader(test_ds, shuffle=False, **loader_kwargs)
     
     def data_loader(self):
         if self.train_loader is None:

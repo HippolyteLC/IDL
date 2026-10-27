@@ -7,7 +7,7 @@
     },
     "model": {
         "model": "clock_cnn",
-        "clock_method": 7,
+        "clock_method": 1,
         "num_clock_classes": 720,
         "n_hidden_fc_layers": 2,
         "fc_width": 256,
@@ -20,18 +20,17 @@
         "H": 75,
         "W": 75,
         "C_i": 1,
-        "out_feat": 2,
-        "num_output_heads": 2
+        "out_feat": 720,
+        "num_output_heads": 1
     },
     "training": {
         "seed": 111,
-        "num_epochs": 1,
+        "num_epochs": 20,
         "optimizer": "adam",
         "learning_rate": 0.001,
         "weight_decay": 0,
         "regularization_term": "",
-        "save": false
-    },
-    "last_train_accuracy": 179.75838541666667,
-    "last_val_accuracy": 182.96109375
+        "save": false,
+        "test": false
+    }
 }

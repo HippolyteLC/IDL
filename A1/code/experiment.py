@@ -85,7 +85,7 @@ def main():
     task = 1 if not config.model.clock_method else 2
     train.VAL_OR_TEST_STRING = "Test" if config.training.test else "Validation"
 
-    LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{config.model.model}"
+    LOGS_DIR = Path(__file__).parent.parent / f"logs/task_{task}/{config.model.model}_{config.model.clock_method}"
     if not os.path.exists(LOGS_DIR):
         os.makedirs(LOGS_DIR)
     CHECKPOINTS_DIR = Path(__file__).parent.parent / f"checkpoints/task_{task}/{config.model.model}"

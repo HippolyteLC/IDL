@@ -10,7 +10,7 @@ def init_loss_and_error(device):
     return total_loss, total_correct
 
 
-def clock_train(data_loader, optimizer, criterion, device, scaler):
+def clock_train(data_loader, optimizer, criterion, device, scaler=None):
     """
     cm: is the clock method 
     """
@@ -23,12 +23,18 @@ def clock_train(data_loader, optimizer, criterion, device, scaler):
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        with torch.cuda.amp.autocast():
-            loss, error = criterion.forward(X, y)
+        loss, error = criterion.forward(X, y)
 
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+        loss.backward()
+        optimizer.step()
+
+        # forward + backward + optimize
+        # with torch.cuda.amp.autocast():
+        #     loss, error = criterion.forward(X, y)
+        
+        # scaler.scale(loss).backward()
+        # scaler.step(optimizer)
+        # scaler.update()
 
         total_loss += loss.detach() * X.size(0)
         total_correct += error.sum()
@@ -74,7 +80,7 @@ def main_train(data_loader, optimizer, criterion, device, scaler):
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        with torch.amp.autocast('cuda'):
+        with torch.cuda.amp.autocast():
             loss, error = criterion.forward(X, y)
         
         scaler.scale(loss).backward()

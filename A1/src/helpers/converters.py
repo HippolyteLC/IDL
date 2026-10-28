@@ -32,8 +32,10 @@ def output_to_label(method):
     def scalar_to_lab(out):
         if out.dim() == 1:
             out = out.unsqueeze(-1)
-        total = out.squeeze(-1) * 720
-        return to_hm(torch.floor(total / 60), total % 60)
+        total = torch.round((out.squeeze(-1) * 720) % 720)
+        h = torch.floor(total/60) % 12
+        m = total % 60      
+        return to_hm(h, m)
 
     def cls_cls(out):
         return to_hm(out[0].argmax(dim=1), out[1].argmax(dim=1))

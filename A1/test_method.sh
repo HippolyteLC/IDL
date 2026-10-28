@@ -9,13 +9,13 @@ for method in {1..7}; do
     python3 -m src.scripts.experiment \
     --model clock_cnn \
     --num-epochs 20 \
-    --dataset clock_75 \
+    --dataset clock_150 \
     --clock-method $method \
     --fc-width 256 \
     --batch-norm \
     --learning-rate 0.0001 \
-    --n-hidden-fc-layers 2 \ 
-    
+    --n-hidden-fc-layers 2 
+
     echo ""
 done
 

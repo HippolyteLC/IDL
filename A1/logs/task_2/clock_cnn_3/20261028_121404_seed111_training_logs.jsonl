@@ -3,3 +3,7 @@
 {"train_loss": "6.1875", "train_accuracy": "108.1033", "test_loss": "6.7324", "test_accuracy": "130.3933"}
 {"train_loss": "5.8871", "train_accuracy": "95.5819", "test_loss": "6.5112", "test_accuracy": "114.5394"}
 {"train_loss": "5.6095", "train_accuracy": "85.3199", "test_loss": "6.3530", "test_accuracy": "97.9400"}
+{"train_loss": "5.3036", "train_accuracy": "72.8390", "test_loss": "6.1822", "test_accuracy": "96.3044"}
+{"train_loss": "4.9807", "train_accuracy": "61.8502", "test_loss": "5.7835", "test_accuracy": "72.7139"}
+{"train_loss": "4.6766", "train_accuracy": "51.5552", "test_loss": "5.2721", "test_accuracy": "53.4661"}
+{"train_loss": "4.3796", "train_accuracy": "43.6777", "test_loss": "5.2007", "test_accuracy": "52.1911"}

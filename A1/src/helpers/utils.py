@@ -58,8 +58,7 @@ def get_net_dims(clock_method, dataset_name, num_clock_classes):
 
     H, W, C_i = datasets[dataset_name]
 
-    if dataset_name.startswith("clock"):
-        out_feat, num_output_heads = {
+    out_feat, num_output_heads = {
             1: (num_clock_classes, 1),
             2: (1, 1),
             3: ([12, 60], 2),

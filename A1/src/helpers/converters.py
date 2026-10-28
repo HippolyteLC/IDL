@@ -83,6 +83,9 @@ def get_label_converter_fn(method: int, out_feat):
     """
 
     def same_label(label):
+        return label
+
+    def split_label(label):
         return label[:,0], label[:, 1]
 
     def to_minutes(label):
@@ -131,7 +134,7 @@ def get_label_converter_fn(method: int, out_feat):
     return {
         1: convert_to_bins,
         2: convert_to_two_decimals,
-        3: same_label,
+        3: split_label,
         4: cls_reg,
         5: reg_cls,
         6: reg_reg,

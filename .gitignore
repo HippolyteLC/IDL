@@ -5,8 +5,9 @@ A1/checkpoints/
 A1/figures/
 A1/logs/task_1/org.py
 A1/notes.docx
-A1/src/*/__pycache__/
-A1/src/__pycache__/
+# Python bytecode and cache directories
+__pycache__/
+*.py[cod]
 
 
 

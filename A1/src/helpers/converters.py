@@ -9,12 +9,12 @@ def output_to_label(method):
     def scal_to_min(x):
         if x.dim() == 1:
             x = x.unsqueeze(-1)
-        return torch.clamp(torch.round(x.squeeze(-1) * 60), 0, 59)
+        return torch.round(x.squeeze(-1) * 60) % 60
 
     def scal_to_hour(x):
         if x.dim() == 1:
             x = x.unsqueeze(-1)
-        return torch.clamp(torch.round(x.squeeze(-1) * 12), 0, 11)
+        return torch.round(x.squeeze(-1) * 12) % 12
 
     def cls_total(out, verbose=False):
         # TODO: fix RuntimeError: CUDA error: device-side assert triggered
@@ -81,7 +81,7 @@ def get_label_converter_fn(method: int, out_feat):
     """
 
     def same_label(label):
-        return label
+        return label[:,0], label[:, 1]
 
     def to_minutes(label):
         h, m = label[:, 0], label[:, 1]

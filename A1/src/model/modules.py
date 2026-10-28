@@ -26,11 +26,11 @@ class ModelLoader:
             cm = model_config.clock_method
 
             for oh in net.output_heads:
-                if cm == 2:
-                    oh.append(SmoothedSigmoid())
-                elif cm in (4, 5, 6) and getattr(oh[-1], "out_features", None) == 1:
-                    oh.append(SmoothedSigmoid())
-                elif cm == 7:
+                # if cm == 2:
+                #     oh.append(SmoothedSigmoid())
+                # elif cm in (4, 5, 6) and getattr(oh[-1], "out_features", None) == 1:
+                #     oh.append(SmoothedSigmoid())
+                if cm == 7:
                     oh.append(L2NormActivation())
         
         net.apply(partial(init_weights,
@@ -158,8 +158,9 @@ class DynamicCNN(nn.Module):
         self.width = D
 
     @staticmethod
-    def build_backbone(C_i, H, kernel_size, activation, dropout, bias, batch_norm):
-        n_pools = int(max(0, np.ceil(np.log2(H/(1<<2)))))
+    def build_backbone(C_i, H, kernel_size, activation, dropout, bias, batch_norm, min_size=4):
+        if n_pools is None:
+            n_pools = int(max(0, np.ceil(np.log2(H/min_size))))
         layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=batch_norm)]
         C_o = H*1
         for _ in range(n_pools-1):
@@ -181,7 +182,7 @@ class ClockCNN(nn.Module):
         dropout = model_config.dropout
         H, W, C_i = model_config.H, model_config.W, model_config.C_i
 
-        layers = DynamicCNN.build_backbone(C_i, H, kernel_size, activation, dropout, bias, batch_norm)
+        layers = DynamicCNN.build_backbone(C_i, H, kernel_size, activation, dropout, bias, batch_norm, min_size=16)
 
         conv = nn.Sequential(*layers)
         with torch.no_grad():

@@ -11,7 +11,10 @@ for method in {1..7}; do
     --num-epochs 20 \
     --dataset clock_75 \
     --clock-method $method \
-    --fc-width 128 
+    --fc-width 256 \
+    --batch-norm \
+    --learning-rate 0.0001 \ 
+    -- 
     echo ""
 done
 

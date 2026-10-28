@@ -1,0 +1,206 @@
+{
+    "CNN 1": {
+        "hyperparameters": {
+            "data": {
+                "batch_size": 64,
+                "split_seed": 2026,
+                "val_split": 0.1
+            },
+            "model": {
+                "activation_method": "relu",
+                "batch_norm": true,
+                "bias": false,
+                "clock_method": null,
+                "dropout": 0.2,
+                "fc_width": 128,
+                "init_method": "kaiming_uniform",
+                "kernel_size": 3,
+                "model": "cnn",
+                "n_hidden_fc_layers": 3,
+                "num_clock_classes": 720,
+                "num_output_heads": 1,
+                "out_feat": 10
+            },
+            "training": {
+                "learning_rate": 0.003,
+                "num_epochs": 10,
+                "optimizer": "adam",
+                "regularization_term": "",
+                "save": false,
+                "test": true,
+                "weight_decay": 0
+            }
+        },
+        "model": "cnn"
+    },
+    "CNN 2": {
+        "hyperparameters": {
+            "data": {
+                "batch_size": 64,
+                "split_seed": 2026,
+                "val_split": 0.1
+            },
+            "model": {
+                "activation_method": "relu",
+                "batch_norm": true,
+                "bias": false,
+                "clock_method": null,
+                "dropout": 0.2,
+                "fc_width": 256,
+                "init_method": "kaiming_uniform",
+                "kernel_size": 3,
+                "model": "cnn",
+                "n_hidden_fc_layers": 2,
+                "num_clock_classes": 720,
+                "num_output_heads": 1,
+                "out_feat": 10
+            },
+            "training": {
+                "learning_rate": 0.01,
+                "num_epochs": 10,
+                "optimizer": "adam",
+                "regularization_term": "",
+                "save": false,
+                "test": true,
+                "weight_decay": 0
+            }
+        },
+        "model": "cnn"
+    },
+    "CNN 3": {
+        "hyperparameters": {
+            "data": {
+                "batch_size": 64,
+                "split_seed": 2026,
+                "val_split": 0.1
+            },
+            "model": {
+                "activation_method": "relu",
+                "batch_norm": true,
+                "bias": false,
+                "clock_method": null,
+                "dropout": 0.2,
+                "fc_width": 256,
+                "init_method": "kaiming_uniform",
+                "kernel_size": 7,
+                "model": "cnn",
+                "n_hidden_fc_layers": 2,
+                "num_clock_classes": 720,
+                "num_output_heads": 1,
+                "out_feat": 10
+            },
+            "training": {
+                "learning_rate": 0.003,
+                "num_epochs": 10,
+                "optimizer": "adam",
+                "regularization_term": "",
+                "save": false,
+                "test": true,
+                "weight_decay": 0
+            }
+        },
+        "model": "cnn"
+    },
+    "MLP 1": {
+        "hyperparameters": {
+            "data": {
+                "batch_size": 64,
+                "split_seed": 2026,
+                "val_split": 0.1
+            },
+            "model": {
+                "activation_method": "leakyrelu",
+                "batch_norm": false,
+                "bias": false,
+                "clock_method": null,
+                "dropout": 0.2,
+                "fc_width": 128,
+                "init_method": "kaiming_uniform",
+                "kernel_size": 7,
+                "model": "mlp",
+                "n_hidden_fc_layers": 7,
+                "num_clock_classes": 720,
+                "num_output_heads": 1,
+                "out_feat": 10
+            },
+            "training": {
+                "learning_rate": 0.003,
+                "num_epochs": 10,
+                "optimizer": "adam",
+                "regularization_term": "",
+                "save": false,
+                "test": true,
+                "weight_decay": 0
+            }
+        },
+        "model": "mlp"
+    },
+    "MLP 2": {
+        "hyperparameters": {
+            "data": {
+                "batch_size": 64,
+                "split_seed": 2026,
+                "val_split": 0.1
+            },
+            "model": {
+                "activation_method": "leakyrelu",
+                "batch_norm": false,
+                "bias": false,
+                "clock_method": null,
+                "dropout": 0.2,
+                "fc_width": 128,
+                "init_method": "kaiming_uniform",
+                "kernel_size": 7,
+                "model": "mlp",
+                "n_hidden_fc_layers": 8,
+                "num_clock_classes": 720,
+                "num_output_heads": 1,
+                "out_feat": 10
+            },
+            "training": {
+                "learning_rate": 0.003,
+                "num_epochs": 10,
+                "optimizer": "adam",
+                "regularization_term": "",
+                "save": false,
+                "test": true,
+                "weight_decay": 0
+            }
+        },
+        "model": "mlp"
+    },
+    "MLP 3": {
+        "hyperparameters": {
+            "data": {
+                "batch_size": 64,
+                "split_seed": 2026,
+                "val_split": 0.1
+            },
+            "model": {
+                "activation_method": "relu",
+                "batch_norm": false,
+                "bias": false,
+                "clock_method": null,
+                "dropout": 0.2,
+                "fc_width": 256,
+                "init_method": "kaiming_uniform",
+                "kernel_size": 7,
+                "model": "mlp",
+                "n_hidden_fc_layers": 7,
+                "num_clock_classes": 720,
+                "num_output_heads": 1,
+                "out_feat": 10
+            },
+            "training": {
+                "learning_rate": 0.01,
+                "num_epochs": 10,
+                "optimizer": "adam",
+                "regularization_term": "",
+                "save": false,
+                "test": true,
+                "weight_decay": 0
+            }
+        },
+        "model": "mlp"
+    }
+}

@@ -159,8 +159,7 @@ class DynamicCNN(nn.Module):
 
     @staticmethod
     def build_backbone(C_i, H, kernel_size, activation, dropout, bias, batch_norm, min_size=4):
-        if n_pools is None:
-            n_pools = int(max(0, np.ceil(np.log2(H/min_size))))
+        n_pools = int(max(0, np.ceil(np.log2(H/min_size))))
         layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=batch_norm)]
         C_o = H*1
         for _ in range(n_pools-1):

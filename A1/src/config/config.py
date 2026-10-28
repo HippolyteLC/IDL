@@ -15,7 +15,7 @@ from src.helpers.utils import get_net_dims
 class DataConfig:
     dataset_name: str = "fashionmnist"
     batch_size: int = 256
-    seed: int = 2026
+    split_seed: int = 2026
     val_split: float = 0.1
 
 

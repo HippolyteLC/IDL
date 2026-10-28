@@ -1,0 +1,5 @@
+{"train_loss": "7.1554", "train_accuracy": "160.6860", "test_loss": "6.9433", "test_accuracy": "180.3528"}
+{"train_loss": "6.5276", "train_accuracy": "124.2882", "test_loss": "6.9210", "test_accuracy": "166.2433"}
+{"train_loss": "6.1875", "train_accuracy": "108.1033", "test_loss": "6.7324", "test_accuracy": "130.3933"}
+{"train_loss": "5.8871", "train_accuracy": "95.5819", "test_loss": "6.5112", "test_accuracy": "114.5394"}
+{"train_loss": "5.6095", "train_accuracy": "85.3199", "test_loss": "6.3530", "test_accuracy": "97.9400"}

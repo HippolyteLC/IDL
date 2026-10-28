@@ -158,13 +158,17 @@ class DynamicCNN(nn.Module):
         self.width = D
 
     @staticmethod
-    def build_backbone(C_i, H, kernel_size, activation, dropout, bias, batch_norm, min_size=4):
+    def build_backbone(C_i, H, kernel_size, activation, dropout, bias, batch_norm, min_size=4, max_channels=256):
         n_pools = int(max(0, np.ceil(np.log2(H/min_size))))
-        layers = [Conv2DActivationPool(C_i, H, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=batch_norm)]
-        C_o = H*1
+        C_o = 32
+        layers = [Conv2DActivationPool(C_i, C_o, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=batch_norm)]
+
         for _ in range(n_pools-1):
             layers.append(Conv2DActivationPool(C_o, C_o*2, kernel_size, activation, dropout=dropout, bias=bias, batch_norm=batch_norm))
-            C_o *= 2
+            if C_o < max_channels:
+                C_o *= 2
+            else:
+                C_o = max_channels
         return layers
 
     def forward(self, x):

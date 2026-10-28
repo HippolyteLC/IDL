@@ -91,10 +91,10 @@ def main():
     CHECKPOINTS_DIR = Path(__file__).parent.parent.parent / f"checkpoints/task_{task}/{config.model.model}"
     if not os.path.exists(CHECKPOINTS_DIR):
         os.makedirs(CHECKPOINTS_DIR)
-
+    
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    train_logs_path = LOGS_DIR / f"{timestamp}_training_logs.jsonl"
-    hp_logs_path = LOGS_DIR / f"{timestamp}_training_hyperparameters.json"
+    train_logs_path = LOGS_DIR / f"{timestamp}_seed{config.training.seed}_training_logs.jsonl"
+    hp_logs_path = LOGS_DIR / f"{timestamp}_seed{config.training.seed}_training_hyperparameters.json"
 
     datahandler = DataHandler(config, device)
     train_loader, val_loader, test_loader = datahandler.data_loader()

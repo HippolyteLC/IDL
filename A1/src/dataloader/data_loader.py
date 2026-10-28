@@ -63,7 +63,7 @@ class DataHandler:
         self.dataset_name = data_config.dataset_name
         self.batch_size = data_config.batch_size
         self.val_split = data_config.val_split
-        self.seed = data_config.seed
+        self.seed = data_config.split_seed
         if self.dataset_name.lower() == "fashionmnist": 
             self.data_class = datasets.FashionMNIST 
         elif self.dataset_name.lower() == "cifar10":

@@ -2,7 +2,7 @@
 #!/bin/bash
 
 # Loop through seeds
-for seed in 111 456 567; do
+for seed in 111 222 333 456 567; do
     # Loop through methods 1 to 7
     for method in {1..7}; do
         echo "=========================================="
@@ -11,7 +11,7 @@ for seed in 111 456 567; do
 
         python3 -m src.scripts.experiment \
             --model clock_cnn \
-            --num-epochs 10 \
+            --num-epochs 20 \
             --dataset clock_150 \
             --clock-method "$method" \
             --fc-width 256 \

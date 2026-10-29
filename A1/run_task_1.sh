@@ -5,7 +5,7 @@
 set -e
 
 # Loop through seeds and datasets
-for seed in 111 456 567; do
+for seed in 111 222 333 456 567 ; do
     for dataset in fashionmnist cifar10; do
         echo "=========================================="
         echo "Running MLP 1: dataset=$dataset, seed=$seed"
@@ -13,7 +13,7 @@ for seed in 111 456 567; do
 
         python3 -m src.scripts.experiment \
             --model mlp \
-            --num-epochs 10 \
+            --num-epochs 20 \
             --dataset "$dataset" \
             --fc-width 128 \
             --learning-rate 0.003 \
@@ -33,7 +33,7 @@ for seed in 111 456 567; do
 
         python3 -m src.scripts.experiment \
             --model mlp \
-            --num-epochs 10 \
+            --num-epochs 20 \
             --dataset "$dataset" \
             --fc-width 256 \
             --learning-rate 0.01 \
@@ -53,7 +53,7 @@ for seed in 111 456 567; do
 
         python3 -m src.scripts.experiment \
             --model mlp \
-            --num-epochs 10 \
+            --num-epochs 20 \
             --dataset "$dataset" \
             --fc-width 128 \
             --learning-rate 0.003 \
@@ -73,7 +73,7 @@ done
 echo "All MLP test runs completed!"
 
 # Loop through seeds and datasets for CNN
-for seed in 111 456 567; do
+for seed in 111 222 333 456 567; do
     for dataset in fashionmnist cifar10; do
         echo "=========================================="
         echo "Running CNN 1: dataset=$dataset, seed=$seed"
@@ -81,7 +81,7 @@ for seed in 111 456 567; do
 
         python3 -m src.scripts.experiment \
             --model cnn \
-            --num-epochs 10 \
+            --num-epochs 20 \
             --dataset "$dataset" \
             --fc-width 128 \
             --learning-rate 0.003 \
@@ -103,7 +103,7 @@ for seed in 111 456 567; do
 
         python3 -m src.scripts.experiment \
             --model cnn \
-            --num-epochs 10 \
+            --num-epochs 20 \
             --dataset "$dataset" \
             --fc-width 256 \
             --learning-rate 0.003 \
@@ -125,7 +125,7 @@ for seed in 111 456 567; do
 
         python3 -m src.scripts.experiment \
             --model cnn \
-            --num-epochs 10 \
+            --num-epochs 20 \
             --dataset "$dataset" \
             --fc-width 256 \
             --learning-rate 0.01 \

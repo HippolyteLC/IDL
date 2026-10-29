@@ -7,3 +7,4 @@
 {"train_loss": "4.9807", "train_accuracy": "61.8502", "test_loss": "5.7835", "test_accuracy": "72.7139"}
 {"train_loss": "4.6766", "train_accuracy": "51.5552", "test_loss": "5.2721", "test_accuracy": "53.4661"}
 {"train_loss": "4.3796", "train_accuracy": "43.6777", "test_loss": "5.2007", "test_accuracy": "52.1911"}
+{"train_loss": "4.0898", "train_accuracy": "36.5249", "test_loss": "4.4489", "test_accuracy": "35.8583"}

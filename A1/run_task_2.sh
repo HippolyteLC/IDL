@@ -2,7 +2,11 @@
 #!/bin/bash
 # 111 222 333 456 567
 # Loop through seeds
+<<<<<<< HEAD
 for seed in 456 567; do
+=======
+for seed in 567 ; do
+>>>>>>> 414e4d82a9ce5c77fe08c056467a50dd56cd6f75
     # Loop through methods 1 to 7
     for method in {1..7}; do
         echo "=========================================="

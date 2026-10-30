@@ -1,0 +1,36 @@
+{
+    "data": {
+        "dataset_name": "cifar10",
+        "batch_size": 64,
+        "split_seed": 2026,
+        "val_split": 0.1
+    },
+    "model": {
+        "model": "mlp",
+        "clock_method": null,
+        "num_clock_classes": 720,
+        "n_hidden_fc_layers": 7,
+        "fc_width": 128,
+        "kernel_size": 7,
+        "dropout": 0.2,
+        "batch_norm": false,
+        "bias": false,
+        "activation_method": "leakyrelu",
+        "init_method": "kaiming_uniform",
+        "H": 32,
+        "W": 32,
+        "C_i": 3,
+        "out_feat": 10,
+        "num_output_heads": 1
+    },
+    "training": {
+        "seed": 111,
+        "num_epochs": 20,
+        "optimizer": "adam",
+        "learning_rate": 0.003,
+        "weight_decay": 0,
+        "regularization_term": "",
+        "save": false,
+        "test": true
+    }
+}

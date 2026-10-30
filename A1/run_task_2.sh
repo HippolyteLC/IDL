@@ -1,8 +1,8 @@
 
 #!/bin/bash
-
+# 111 222 333 456 567
 # Loop through seeds
-for seed in 111 222 333 456 567; do
+for seed in 456 567; do
     # Loop through methods 1 to 7
     for method in {1..7}; do
         echo "=========================================="

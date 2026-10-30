@@ -1,0 +1,36 @@
+{
+    "data": {
+        "dataset_name": "clock_150",
+        "batch_size": 32,
+        "split_seed": 2026,
+        "val_split": 0.1
+    },
+    "model": {
+        "model": "clock_cnn",
+        "clock_method": 6,
+        "num_clock_classes": 720,
+        "n_hidden_fc_layers": 2,
+        "fc_width": 256,
+        "kernel_size": 7,
+        "dropout": 0.2,
+        "batch_norm": true,
+        "bias": false,
+        "activation_method": "relu",
+        "init_method": "kaiming_uniform",
+        "H": 150,
+        "W": 150,
+        "C_i": 1,
+        "out_feat": 1,
+        "num_output_heads": 2
+    },
+    "training": {
+        "seed": 567,
+        "num_epochs": 20,
+        "optimizer": "adam",
+        "learning_rate": 0.0001,
+        "weight_decay": 0,
+        "regularization_term": "",
+        "save": false,
+        "test": true
+    }
+}

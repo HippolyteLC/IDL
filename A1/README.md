@@ -32,7 +32,4 @@ There is a subfolder for the results of each method: *mlp_None, cnn_None* for ta
 
 Model, training and experiment parameters are stored inside json files. Train, val, and test loss and accuracies are stored inside jsonl files. 
 
-# TODO:
-1. fix multi output head classifier (dims), method 3.
 
-2. fix the loss stagnation task 2, all methods (except for 1).

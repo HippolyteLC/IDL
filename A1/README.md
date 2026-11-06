@@ -4,6 +4,16 @@
 ```bash
 module load LIACS/ItDL-2026
 ```
+
+Alternatively, create a venv using the **uv** package manager. 
+```bash
+uv venv .venv
+```
+pip install the following required libraries (linux):
+```bash
+uv pip install torch torchvision matplotlib
+```
+
 2. run a test on clock dataset
 ```bash
 cd A1
@@ -24,6 +34,17 @@ chmod +x ./run_task_2.sh
 
 ./run_task_2.sh
 ```
+
+### Running a single experiment
+
+To run a single experiment go to the file in `src/scripts/experiment.py`. 
+A run can be executed using the following command:
+```bash
+cd A1/ # make sure you are in the root of assignment 1
+
+uv run python -m src.scripts.experiment --dataset-name cifar10 --batch-size 64 # other hyperparameters are visible in the file
+```
+
 
 ## Results 
 
